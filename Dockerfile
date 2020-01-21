@@ -7,5 +7,5 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir flask junos-eznc requests
 
 EXPOSE 51360
-ENTRYPOINT python -u /app/mesa.py 51360
+CMD ["python","-u","/app/mesa.py"]
 
