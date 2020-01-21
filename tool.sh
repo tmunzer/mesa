@@ -42,11 +42,11 @@ function create_app_container
 #
 # =========================================================
 # =========================================================
-SCRIPT_CONF=`pwd`"/auto_switchport.conf"
-SCRIPT_NAME="auto_switchport.py"
+SCRIPT_CONF=`pwd`"/mist_ex_autoconf.conf"
+SCRIPT_NAME="mist_ex_autoconf.py"
 
-APP_NAME="auto_switchport"
-APP_IMG="tmunzer/auto_switchport"
+APP_NAME="mist_ex_autoconf"
+APP_IMG="tmunzer/mist_ex_autoconf"
 
 # =========================================================
 # NGINX server configuration

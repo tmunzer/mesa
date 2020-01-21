@@ -7,5 +7,5 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir flask junos-eznc requests
 
 EXPOSE 51360
-ENTRYPOINT python /app/auto_switchport.py 51360
+ENTRYPOINT python -u /app/auto_switchport.py 51360
 
