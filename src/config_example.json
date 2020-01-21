@@ -1,0 +1,19 @@
+{
+    "apitoken": "xxxxxxxxxxxx",
+    "mist_cloud": "api.mist.com",
+    "server_uri": "/mist-webhooks",
+    "ex_username": "root",
+    "ex_pwd": "password",
+    "ex_conf_trunk_ap": [
+        "delete protocols dot1x authenticator interface <port>",
+        "set interfaces <port> native-vlan-id 192",
+        "set interfaces <port> unit 0 family ethernet-switching interface-mode trunk",
+        "set interfaces <port> unit 0 family ethernet-switching vlan members all"
+    ],
+    "ex_conf_default": [
+        "set protocols dot1x authenticator interface <port>",
+        "delete interfaces <port> native-vlan-id",
+        "delete interfaces <port> unit 0 family ethernet-switching interface-mode trunk",
+        "delete interfaces <port> unit 0 family ethernet-switching vlan members all"
+    ]
+}
