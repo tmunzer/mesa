@@ -21,6 +21,7 @@ config = open("./config.json", "r").read()
 config = json.loads(config)
 apitoken = config["apitoken"]
 mist_cloud = config["mist_cloud"]
+domain = config["domain"]
 server_uri = config["server_uri"]
 ex_username = config["ex_username"]
 ex_pwd = config["ex_pwd"]
@@ -59,7 +60,7 @@ def ap_event(event):
     resp = json.loads(resp)
     if "results" in resp and len(resp["results"]) == 1: 
         ap_info = resp["results"][0]
-        lldp_system_name = ap_info["lldp_system_name"]
+        lldp_system_name = ap_info["lldp_system_name"]+"."+domain
         lldp_port_desc = ap_info["lldp_port_desc"]
         action = event["type"]
         if action == "AP_CONNECTED":

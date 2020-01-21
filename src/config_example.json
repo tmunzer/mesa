@@ -2,6 +2,7 @@
     "apitoken": "xxxxxxxxxxxx",
     "mist_cloud": "api.mist.com",
     "server_uri": "/mist-webhooks",
+    "domain": "mycorp.com",
     "ex_username": "root",
     "ex_pwd": "password",
     "ex_conf_trunk_ap": [
