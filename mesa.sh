@@ -42,11 +42,11 @@ function create_app_container
 #
 # =========================================================
 # =========================================================
-SCRIPT_CONF=`pwd`"/mist_ex_autoconf.conf"
-SCRIPT_NAME="mist_ex_autoconf.py"
+SCRIPT_CONF=`pwd`"/mesa.conf"
+SCRIPT_NAME="mesa.py"
 
-APP_NAME="mist_ex_autoconf"
-APP_IMG="tmunzer/mist_ex_autoconf"
+APP_NAME="mesa"
+APP_IMG="tmunzer/mesa"
 
 # =========================================================
 # NGINX server configuration
@@ -464,8 +464,31 @@ function start_container # $XX_NAME
   echo ""
   if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/config.json ]
   then 
-    echo -e "The script is creating the file PERSISTANT_FOLDER/$APP_NAME/config.json, but you'll have to configure it before starting the app."
+    echo -e "${WARNINGC}WARNING${NC}:The script is creating the file $PERSISTANT_FOLDER/$APP_NAME/config.json"
+    echo -e "         but you'll have to configure it before starting the app."
     touch $PERSISTANT_FOLDER/$APP_NAME/config.json
+    cat <<\EOF > $PERSISTANT_FOLDER/$APP_NAME/config.json
+{
+"apitoken": "xxxxxxxxxxxx",
+"mist_cloud": "api.mist.com",
+"server_uri": "/mist-webhooks",
+"domain": "mycorp.com",
+"ex_username": "root",
+"ex_pwd": "password",
+"ex_conf_trunk_ap": [
+    "delete protocols dot1x authenticator interface <port>",
+    "set interfaces <port> native-vlan-id 192",
+    "set interfaces <port> unit 0 family ethernet-switching interface-mode trunk",
+    "set interfaces <port> unit 0 family ethernet-switching vlan members all"
+],
+"ex_conf_default": [
+    "set protocols dot1x authenticator interface <port>",
+    "delete interfaces <port> native-vlan-id",
+    "delete interfaces <port> unit 0 family ethernet-switching interface-mode trunk",
+    "delete interfaces <port> unit 0 family ethernet-switching vlan members all"
+]
+}
+EOF
     return 1
   else 
     if [ `$DOCKER ps -a | grep $1 | wc -l` -eq 0 ]
