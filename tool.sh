@@ -462,29 +462,36 @@ function check_container # $XX_NAME
 function start_container # $XX_NAME
 {
   echo ""
-  if [ `$DOCKER ps -a | grep $1 | wc -l` -eq 0 ]
-  then
-    echo -e "${ERRORC}ERROR${NC}: $1 container is not created. Please create it before."
-    retval=1
-  elif [ `$DOCKER ps | grep $1 | wc -l` -eq 0 ]
-  then
-    echo -e "${INFOC}INFO${NC}: $1 container is not started. starting it..."
-    CID=`$DOCKER ps -a | grep $1 | cut -d" " -f1`
-    $DOCKER start $CID
-    retval=$?
-    if [ $retval -eq 0 ]
+  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/config.json ]
+  then 
+    echo -e "The script is creating the file PERSISTANT_FOLDER/$APP_NAME/config.json, but you'll have to configure it before starting the app."
+    touch $PERSISTANT_FOLDER/$APP_NAME/config.json
+    return 1
+  else 
+    if [ `$DOCKER ps -a | grep $1 | wc -l` -eq 0 ]
     then
-      echo -e "${INFOC}INFO${NC}: $1 container is now started."
-      retval=0
-    else
-      echo -e "${ERRORC}ERROR${NC}: $1 container can't be started."
+      echo -e "${ERRORC}ERROR${NC}: $1 container is not created. Please create it before."
       retval=1
+    elif [ `$DOCKER ps | grep $1 | wc -l` -eq 0 ]
+    then
+      echo -e "${INFOC}INFO${NC}: $1 container is not started. starting it..."
+      CID=`$DOCKER ps -a | grep $1 | cut -d" " -f1`
+      $DOCKER start $CID
+      retval=$?
+      if [ $retval -eq 0 ]
+      then
+        echo -e "${INFOC}INFO${NC}: $1 container is now started."
+        retval=0
+      else
+        echo -e "${ERRORC}ERROR${NC}: $1 container can't be started."
+        retval=1
+      fi
+    else
+      echo -e "${INFOC}INFO${NC}: $1 container is alreay running."
+      retval=0
     fi
-  else
-    echo -e "${INFOC}INFO${NC}: $1 container is alreay running."
-    retval=0
+    return $retval
   fi
-  return $retval
 }
 
 function result_banner
