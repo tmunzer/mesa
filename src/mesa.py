@@ -14,6 +14,8 @@ import requests
 from requests.exceptions import HTTPError
 import json
 from datetime import datetime
+import logging as log
+import os
 
 ###########################
 ### PARAMETERS
@@ -28,9 +30,10 @@ ex_pwd = config["ex_pwd"]
 ex_conf_trunk_ap = config["ex_conf_trunk_ap"]
 ex_conf_default = config["ex_conf_default"]
 
-
+###########################
+### VARS
 server_port = 51360
-
+log.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 ###########################
 ### FUNCTIONS
 def get_datetime():
@@ -39,11 +42,11 @@ def get_datetime():
 
 def print_success(message):
     dt = get_datetime()
-    print("%s - Success: %s"%(dt,message))
+    log.info("%s - Success: %s"%(dt,message))
 
 def print_error(message):
     dt = get_datetime()
-    print("%s - Error: %s"%(dt,message))
+    log.error("%s - Error: %s"%(dt,message))
 
 # Function called when an AP is connected/disconnected
 def ap_event(event):
@@ -153,7 +156,7 @@ def ap_connected(mac, lldp_system_name, lldp_port_desc):
     change_ex_conf(lldp_system_name, conf)
 
 def ap_disconnected(mac, lldp_system_name, lldp_port_desc):
-    print("AP %s disconnected from switch %s on port %s" %(mac, lldp_system_name, lldp_port_desc))
+    log.info("AP %s disconnected from switch %s on port %s" %(mac, lldp_system_name, lldp_port_desc))
     conf = replace_port(ex_conf_default, lldp_port_desc)
     change_ex_conf(lldp_system_name, conf)
 
@@ -168,8 +171,9 @@ def postJsonHandler():
             ap_event(event)
     return '', 200
 
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=server_port)
+    app.run(debug=False, host='0.0.0.0', port=server_port)
 
 
 
