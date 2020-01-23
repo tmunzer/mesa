@@ -15,6 +15,7 @@ mist_conf={
     "server_uri": "/mist-webhooks",
 }
 
+debug_level = 6
 ########################
 # configuration_method: 
 # Indicate the switch how the process to configure the switchport
@@ -81,12 +82,12 @@ ex_metod= {
 # host:         CSO hostname
 # conf_ap:      Configuration deployed on the switchport when
 #               an AP is connected to it. 
-#               This must contains the Port Profile Name from 
+#               This must contain the Port Profile Name from 
 #               CSO and the vlan_id (for Access port) or the 
 #               native_vlan_id (from Trunk port)
 # default_ap:   Configuration deployed on the switchport when
 #               an AP is disconnected from it. 
-#               This must contains the Port Profile Name from 
+#               This must contain the Port Profile Name from 
 #               CSO and the vlan_id (for Access port) or the 
 #               native_vlan_id (from Trunk port)
 cso_method= {
