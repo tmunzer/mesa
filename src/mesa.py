@@ -4,49 +4,47 @@ from flask import Flask
 from flask import json
 from flask import request
 
-### JUNOS IMPORTS ###
-from jnpr.junos import Device
-from jnpr.junos.utils.config import Config
-from pprint import pprint
+
+### CONF IMPORT ###
+from config import mist_conf
+from config import configuration_method
 
 ### OTHER IMPORTS ###
-import requests
-from requests.exceptions import HTTPError
 import json
-from datetime import datetime
-import logging as log
-import os
+from libs import req
 
 ###########################
+### LOGGING SETTINGS
+try:
+    from config import log_level
+except:
+    log_level = 6
+finally:
+    from libs.debug import Console
+    console = Console(log_level)
+
+###########################
+### METHODS IMPORT ###
+if configuration_method == "cso":
+    import cso
+elif configuration_method == "ex":
+    import ex
+else:
+    console.critical("Error in the configuration file. Please check the configuration_method variable! Exiting...")
+    exit(255)
+###########################
 ### PARAMETERS
-config = open("./config.json", "r").read()
-config = json.loads(config)
-apitoken = config["apitoken"]
-mist_cloud = config["mist_cloud"]
-domain = config["domain"]
-server_uri = config["server_uri"]
-ex_username = config["ex_username"]
-ex_pwd = config["ex_pwd"]
-ex_conf_trunk_ap = config["ex_conf_trunk_ap"]
-ex_conf_default = config["ex_conf_default"]
+
+apitoken = mist_conf["apitoken"]
+mist_cloud = mist_conf["mist_cloud"]
+server_uri = mist_conf["server_uri"]
 
 ###########################
 ### VARS
 server_port = 51360
-log.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+
 ###########################
 ### FUNCTIONS
-def get_datetime():
-    now = datetime.now()
-    return now.strftime("%d/%m/%Y %H:%M:%S")
-
-def print_success(message):
-    dt = get_datetime()
-    log.info("%s - Success: %s"%(dt,message))
-
-def print_error(message):
-    dt = get_datetime()
-    log.error("%s - Error: %s"%(dt,message))
 
 # Function called when an AP is connected/disconnected
 def ap_event(event):
@@ -57,108 +55,29 @@ def ap_event(event):
     else:
         level = "orgs"
         level_id = ["org_id"]
-
+    action = event["type"]
     url = "https://%s/api/v1/%s/%s/devices/search?ap=%s" %(mist_cloud, level, level_id, mac)    
-    resp = mist_request(url)
-    resp = json.loads(resp)
-    if "results" in resp and len(resp["results"]) == 1: 
-        ap_info = resp["results"][0]
-        lldp_system_name = ap_info["lldp_system_name"]+"."+domain
-        lldp_port_desc = ap_info["lldp_port_desc"]
-        action = event["type"]
-        if action == "AP_CONNECTED":
-            ap_connected(mac, lldp_system_name, lldp_port_desc)
-        elif action == "AP_DISCONNECTED":
-            ap_disconnected(mac, lldp_system_name, lldp_port_desc)
-
-# establish connection with EX switch
-def ex_connect(dev, switch):
-    try:
-        dev.open()
-        cu = Config(dev)
-        print_success("connected to switch %s" %switch)
-        return cu
-    except:
-        print_error("unable to connect to switch %s" %switch)
-        return None
-
-# lock ex configuration
-def ex_lock(cu, switch):
-    try:
-        cu.lock()
-        print_success("configuration locked on device %s" %switch)
-        return True
-    except:
-        print_error("unable to lock configuration on device %s" %switch)
-        return False
-
-# commit ex configuration
-def ex_commit(cu, switch):
-    try:
-        cu.commit()
-        print_success("configuration commited on device %s" %switch)
-        return True
-    except:
-        print_error("unable to commit configuration on device %s" %switch)
-        return False
-
-# unlock ex configuration
-def ex_unlock(cu, switch):
-    try:
-        cu.unlock()
-        print_success("configuration unlocked on device %s" %switch)
-        return True
-    except:
-        print_error("unable to unlock configuration on device %s" %switch)
-        return False
-
-# function called to change the ex configuration
-def change_ex_conf(switch, conf):
-    dev = Device(host=switch, user=ex_username, passwd=ex_pwd)
-    cu = ex_connect(dev, switch)
-    if not cu == None:
-        cmd_result = ex_lock(cu, switch)
-        if cmd_result == True:
-            for setconf in conf:        
-                try:
-                    cu.load(setconf, format='set')
-                    print_success("%s" %setconf)
-                except:
-                    print_error("%s"%setconf)
-            ex_commit(cu, switch)
-            ex_unlock(cu, switch)
-            dev.close()
-    
-# generate the API request against Mist Cloud to get switch LLDP information 
-def mist_request(url):
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
-    try:
-        print("Request > GET %s" % url)
-        resp = requests.get(url, headers=headers)
-        resp.raise_for_status()
-    except HTTPError as http_err:
-        print(f'HTTP error occurred: {http_err}')  # Python 3.6
-        print(f'HTTP error description: {resp.json()}')
-    except Exception as err:
-        print(f'Other error occurred: {err}')  # Python 3.6
+    resp = req.get(url, headers=headers)["result"]
+    if "results" in resp and len(resp["results"]) == 1: 
+        console.debug("AP %s found in %s %s" %(mac, level, level_id))
+        ap_info = resp["results"][0]
+        lldp_system_name = ap_info["lldp_system_name"]
+        lldp_port_desc = ap_info["lldp_port_desc"]
+        if configuration_method == "cso":
+            console.info("Port %s on switch %s will be configured through SCO" %(lldp_port_desc,lldp_system_name))
+            if action == "AP_CONNECTED":
+                cso.ap_connected(mac, lldp_system_name, lldp_port_desc)
+            elif action == "AP_DISCONNECTED":
+                cso.ap_disconnected(mac, lldp_system_name, lldp_port_desc)
+        elif configuration_method == "ex":
+            console.info("Port %s on switch %s will be configured directly on the switch" %(lldp_port_desc,lldp_system_name))
+            if action == "AP_CONNECTED":
+                ex.ap_connected(mac, lldp_system_name, lldp_port_desc)
+            elif action == "AP_DISCONNECTED":
+                ex.ap_disconnected(mac, lldp_system_name, lldp_port_desc)
     else:
-        return resp.content
-
-def replace_port(conf, port_num):
-    new_conf = []
-    for line in conf:
-        new_conf.append(line.replace("<port>", port_num))
-    return new_conf
-
-def ap_connected(mac, lldp_system_name, lldp_port_desc):
-    print("AP %s connected on switch %s on port %s" %(mac, lldp_system_name, lldp_port_desc))
-    conf = replace_port(ex_conf_trunk_ap, lldp_port_desc)
-    change_ex_conf(lldp_system_name, conf)
-
-def ap_disconnected(mac, lldp_system_name, lldp_port_desc):
-    log.info("AP %s disconnected from switch %s on port %s" %(mac, lldp_system_name, lldp_port_desc))
-    conf = replace_port(ex_conf_default, lldp_port_desc)
-    change_ex_conf(lldp_system_name, conf)
+        console.warning("Received %s for AP %s, but I'm unable to find it in %s %s" %(action, mac, level, level_id))
 
 ###########################
 ### ENTRY POINT
@@ -173,7 +92,7 @@ def postJsonHandler():
 
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=server_port)
+    app.run(debug=True, host='0.0.0.0', port=server_port)
 
 
 
