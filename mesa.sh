@@ -867,20 +867,21 @@ function menu_main
   do
     echo ""
     echo "1) Deploy and Start Application"
-    echo "2) Update Application"
-    echo "3) Manage Application"
-    echo "4) HTTPS certificates"
-    echo "5) Script parameters"
+    echo "2) Start Application Containers"
+    echo "3) Update Application"
+    echo "4) Manage Application"
+    echo "5) HTTPS certificates"
+    echo "6) Script parameters"
     echo "x) Exit"
     echo "Please make a choice"
     read response
     case $response in
       "1") deploy;;
-      "2") update_app;;
-      "3") menu_app;;
-      "4") menu_certificates;;
-      "5") menu_script;;
-      "7") if "$EMAIL_SRV_ENABLE" == true; then menu_email; fi;;
+      "2") start_containers;;
+      "3") update_app;;
+      "4") menu_app;;
+      "5") menu_certificates;;
+      "6") menu_script;;      
       "x") exit 0;;
     esac
   done
