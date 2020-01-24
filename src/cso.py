@@ -128,7 +128,6 @@ def _get_lan_segments(site_uuid):
             "detail":True
         }
     resp = req.post(url, headers, body)
-    print(resp)
     return resp["result"]["lan-segment"]
 
 def _find_lan_segments_uuid(lan_segments, vlan_id=None):
