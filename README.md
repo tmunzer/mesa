@@ -10,6 +10,21 @@ The switchport configuration can be done through
 This script is available as is and can be run on any server with Python3. 
 The script is also available as a Docker image. It is designed to simplify the deployment, and a script is available to automate the required images deployment.
 
+# IMPORTANT
+To get this script working, you will have to manually configure webhooks on your Mist account and enable the "device-events" topic. This configuration can be done at the Organization level, or at the site level, depending on your needs.
+
+This will tell Mist Cloud to send AP events (like AP Connected/Disconnected) to the MESA FQDN. As of today (January, 2020), it is not possible to enable "device-events" topics directly from the Mist UI. This configuration can be done through Mist APIs. You can use the web UI to manage APIs by reaching https://api.mist.com/api/v1/orgs/:your_org_id/webhooks or https://api.eu.mist.com/api/v1/orgs/:your_org_id/webhooks (Be sure to replace ":your_org_id" first). Then you will be able to create a new webhook by using the following settings:
+
+`
+    {
+        "url": "https://<mesa_server_fqdn>/<mesa_url>",
+        "topics": [
+            "device-events"
+        ],
+        "enabled": true
+    }
+   `
+
 # How it works
 <img src="__readme_img/cso_process.png" width="40%">
 
