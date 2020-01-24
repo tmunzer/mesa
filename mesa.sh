@@ -196,8 +196,7 @@ function init_script_conf
   fi
   if [ ! "$NODEJS_VHOST" ]
   then
-    update_vhost
-    update_acs
+    update_vhost    
   fi
 }
 
@@ -831,8 +830,6 @@ function init_script
   check_folder "Certificates" $NGINX_CERTS_FOLDER
   check_folder "App" "$PERSISTANT_FOLDER/$APP_NAME"
   check_folder "bower_components" "$PERSISTANT_FOLDER/bower_components"
-
-  init_acs_conf
 
   check_certificates
 

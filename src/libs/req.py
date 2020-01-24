@@ -6,11 +6,10 @@ import json
 try:
     from config import log_level
 except:
-    log_level = 7
+    log_level = 6
 finally:
     from .debug import Console
     console = Console(log_level)
-
 
 
 def _response( resp, uri="", multi_pages_result=None):

@@ -15,7 +15,7 @@ mist_conf={
     "server_uri": "/mist-webhooks",
 }
 
-debug_level = 6
+log_level = 6
 ########################
 # configuration_method: 
 # Indicate the switch how the process to configure the switchport
