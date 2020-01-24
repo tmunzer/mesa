@@ -180,7 +180,7 @@ def _set_switchport_config(switch_uuid, port_name, port_profile_uuid, lan_segmen
             ]
         }
     }
-    console.info("""Sending request to CSO to apply new configuration on switch %s port %s:
+    console.notice("""Sending request to CSO to apply new configuration on switch %s port %s:
     Port profile name: %s
     Lan Segments: %s
     Native VLAN: %s """ % (switch_name, port_name, profile_name, lan_segments, native_lan))
@@ -200,7 +200,7 @@ def _deploy_switchport_config(switch_uuid, port_name, switch_name):
             ]
         }
     }
-    console.info("Sending request to CSO to deploy new configuration on switch %s port %s" % (
+    console.notice("Sending request to CSO to deploy new configuration on switch %s port %s" % (
         switch_name, port_name))
     resp = req.post(url, headers, body)
     return resp["result"]
