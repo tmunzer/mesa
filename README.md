@@ -50,7 +50,7 @@ The Automation script will allow you to easily
 * Download, Deploy, Update the application container
 To use this script, just download it [here](mesa.sh), and run it in a terminal.
 
-### Configuration
+### Deployment Script Configuration
 When you are starting the script for the first time, it will ask some question:
 ##### Application FQDN
 This parameter is very important, and the value must be resolvable by the HTTP clients. The script is deploying a NGINX containter in front of the application container. NGINX will be in charge to manage HTTPS connections, and to route the HTTP/HTTPS traffic to the right application (it is build to allow to run different applications on the same server). This routing is done based on the `host` parameter in the HTTP headers.
@@ -59,7 +59,12 @@ This parameter is very important, and the value must be resolvable by the HTTP c
 The script will automatically create a folder in the permanent folder you configured. This folder will be used to store permanent data from the application. The script will also generate a `config.py` file containing configuration example and help.
 
 You will have to configure the file before starting the application.
+### MESA Configuration
+Before starting the MESA application, you will have to configure it. To do so, edit the file `config.py` located in the folder permananent_folder/mesa created by the deployment script.
 
+The file `config.py`already contains the configuration structure with example values. 
+### Start/Stop the MESA Application
+This can be done through the deployment script, or directly by using Docker commands. If you do it manually, you will have to start/stop both containers, `jwilder/nginx-proxy` and `tmunzer/mesa`.
 ### Docker Tips
 Depending on your system and your settings, you may have to add `sudo` in front of the following commands
 - `docker ps`: list all you docker containers currently running. This command will also show you the container id.
