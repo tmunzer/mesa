@@ -18,10 +18,10 @@ The following steps are explaining the communication when using CSO integration.
 2. Once the AP connects the Mist Cloud, it will report the switch LLDP information (hostname, switchport desc, …) (2)
 3. At the same time, Mist Cloud is sending a webhook message to the MESA server indicating this AP just connects (3)
 4. MESA server will use Mist APIs to get more information, especially the switch hostname and the switchport (4)
-5. MESA server will contact CSO to get the information required to generate the “AP_mode” configuration. (5)
+5. MESA server will contact CSO to get the information required to generate the “AP_profile” configuration. (5)
 6. Once the new configuration is generated, MESA will use CSO APIs to apply it to the switchport and ask CSO to deploy the changes to the switch (6)
 7. CSO will deploy the new configuration, which will change the switchport from access mode to trunk mode and configure the required VLANs (7)
-8. When an admin disconnects an AP from any switchport, the process will be the same, except that the configuration will be generated to revert the switchport back to the “secured_mode”
+8. When an admin disconnects an AP from any switchport, the process will be the same, except that the configuration will be generated to revert the switchport back to the “secured_profile” (containing the 802.1X/MAB settigs)
 
 # How to use it
 ## Docker Image
