@@ -44,3 +44,12 @@ This parameter is very important, and the value must be resolvable by the HTTP c
 The script will automatically create a folder in the permanent folder you configured. This folder will be used to store permanent data from the application. The script will also generate a `config.py` file containing configuration example and help.
 
 You will have to configure the file before starting the application.
+
+### Docker Tips
+Depending on your system and your settings, you may have to add `sudo` in front of the following commands
+- `docker ps`: list all you docker containers currently running. This command will also show you the container id.
+- `docker ps -a`: list all you docker containers. This command will also show you the container id.
+- `docker start <container_id>`: manually start a docker container.
+- `docker stop <container_id>`: manually stop a docker container.
+- `docker logs <container_id>`: show the container logs
+- `docker logs -f <container_id>`: continuously show the container logs
