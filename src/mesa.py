@@ -12,6 +12,7 @@ from config import configuration_method
 ### OTHER IMPORTS ###
 import json
 from libs import req
+import os
 
 ###########################
 ### LOGGING SETTINGS
@@ -23,6 +24,10 @@ finally:
     from libs.debug import Console
     console = Console(log_level)
 
+#if os.path.isfile(portal_file_name):
+#    f = open("./data.py", w+)
+#    f.close()
+#from 
 ###########################
 ### METHODS IMPORT ###
 if configuration_method == "cso":
@@ -56,7 +61,7 @@ def ap_event(event):
         level = "orgs"
         level_id = ["org_id"]
     action = event["type"]
-    url = "https://%s/api/v1/%s/%s/devices/search?ap=%s" %(mist_cloud, level, level_id, mac)    
+    url = "https://%s/api/v1/%s/%s/devices/search?mac=%s" %(mist_cloud, level, level_id, mac)    
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
     resp = req.get(url, headers=headers)["result"]
     if "results" in resp and len(resp["results"]) == 1: 
@@ -65,7 +70,7 @@ def ap_event(event):
         lldp_system_name = ap_info["lldp_system_name"]
         lldp_port_desc = ap_info["lldp_port_desc"]
         if configuration_method == "cso":
-            console.info("Port %s on switch %s will be configured through SCO" %(lldp_port_desc,lldp_system_name))
+            console.info("Port %s on switch %s will be configured through CSO" %(lldp_port_desc,lldp_system_name))
             if action == "AP_CONNECTED":
                 cso.ap_connected(mac, lldp_system_name, lldp_port_desc)
             elif action == "AP_DISCONNECTED":
