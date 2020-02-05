@@ -10,6 +10,21 @@ The switchport configuration can be done through
 This script is available as is and can be run on any server with Python3. 
 The script is also available as a Docker image. It is designed to simplify the deployment, and a script is available to automate the required images deployment.
 
+# IMPORTANT
+To get this script working, you will have to manually configure webhooks on your Mist account and enable the "device-events" topic. This configuration can be done at the Organization level, or at the site level, depending on your needs.
+
+This will tell Mist Cloud to send AP events (like AP Connected/Disconnected) to the MESA FQDN. As of today (January, 2020), it is not possible to enable "device-events" topics directly from the Mist UI. This configuration can be done through Mist APIs. You can use the web UI to manage APIs by reaching https://api.mist.com/api/v1/orgs/:your_org_id/webhooks or https://api.eu.mist.com/api/v1/orgs/:your_org_id/webhooks (Be sure to replace ":your_org_id" first). Then you will be able to create a new webhook by using the following settings:
+
+`
+    {
+        "url": "https://<mesa_server_fqdn>/<mesa_url>",
+        "topics": [
+            "device-events"
+        ],
+        "enabled": true
+    }
+   `
+
 # How it works
 <img src="__readme_img/cso_process.png" width="40%">
 
@@ -35,7 +50,7 @@ The Automation script will allow you to easily
 * Download, Deploy, Update the application container
 To use this script, just download it [here](mesa.sh), and run it in a terminal.
 
-### Configuration
+### Deployment Script Configuration
 When you are starting the script for the first time, it will ask some question:
 ##### Application FQDN
 This parameter is very important, and the value must be resolvable by the HTTP clients. The script is deploying a NGINX containter in front of the application container. NGINX will be in charge to manage HTTPS connections, and to route the HTTP/HTTPS traffic to the right application (it is build to allow to run different applications on the same server). This routing is done based on the `host` parameter in the HTTP headers.
@@ -44,7 +59,12 @@ This parameter is very important, and the value must be resolvable by the HTTP c
 The script will automatically create a folder in the permanent folder you configured. This folder will be used to store permanent data from the application. The script will also generate a `config.py` file containing configuration example and help.
 
 You will have to configure the file before starting the application.
+### MESA Configuration
+Before starting the MESA application, you will have to configure it. To do so, edit the file `config.py` located in the folder permananent_folder/mesa created by the deployment script.
 
+The file `config.py`already contains the configuration structure with example values. 
+### Start/Stop the MESA Application
+This can be done through the deployment script, or directly by using Docker commands. If you do it manually, you will have to start/stop both containers, `jwilder/nginx-proxy` and `tmunzer/mesa`.
 ### Docker Tips
 Depending on your system and your settings, you may have to add `sudo` in front of the following commands
 - `docker ps`: list all you docker containers currently running. This command will also show you the container id.
