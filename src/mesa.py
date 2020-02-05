@@ -114,11 +114,14 @@ def ap_event(event):
         level_id = ["org_id"]
     action = event["type"]    
     console.info("Received message %s for AP %s" %(action, mac))
-    site_out = _check_site_outage(level, level_id, mac)
-    if site_out == True:
-        console.critical("All APs from %s %s were disconnected in less than %s seconds!!! Aborting configuration change!!!" %(level, level_id, timeout_site_outage * 2))
-    else: 
+    if action == "AP_DISCONNECTED":
+        site_out = _check_site_outage(level, level_id, mac)
+    else:
+        site_out = False
+    if site_out == False:
         _initiate_conf_change(action, level, level_id, mac)
+    else: 
+        console.critical("All APs from %s %s were disconnected in less than %s seconds!!! Aborting configuration change!!!" %(level, level_id, timeout_site_outage * 2))
 
 ###########################
 ### ENTRY POINT
