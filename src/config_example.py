@@ -4,20 +4,37 @@
 # Configuration to receive webhooks from Mist Cloud and to send API 
 # requests to Mist Cloud
 # 
-# apitoken:         apitoken from Mist Cloud to sent API requests
-# mist_cloud:       api.mist.com if you are using US Cloud, or 
-#                   api.eu.mist.com if you are using EU Cloud
-# server_uri:       uri where you want to receive wehbooks messages
-#                   on this server. 
+# apitoken:             apitoken from Mist Cloud to sent API requests
+# mist_cloud:           api.mist.com if you are using US Cloud, or 
+#                       api.eu.mist.com if you are using EU Cloud
+# server_uri:           uri where you want to receive wehbooks messages
+#                       on this server. 
 mist_conf={
     "apitoken": "xxxxxxxxxxxxxxx",
     "mist_cloud": "api.mist.com",
-    "server_uri": "/mist-webhooks",
-    "timeout_site_outage": 30,
-    "wait_site_outage": 5
+    "server_uri": "/mist-webhooks"
+}
+log_level = 6
+########################
+# site_outage
+# logic to detect if the message is received because the AP is really
+# disconnected from the network or if all the APs from the site are 
+# reported as disconnected.
+# In the 1st case, the switchport will be revert back to its default
+# configuration.
+# In the 2nd case, the switchport will not be revert back.
+# enable:       enable or not the outage detection logic
+# timeout:      maximum duration (in seconds) between the first and the
+#               last AP disconnection to detect the outage. 
+# wait_time:    Time to wait (in seconds) before start the test to detect
+#               if it's one AP disconnected or a general outage on the site
+#               (in this case, no modification will be done on the sites)
+site_outage = {
+    "enabled": True,
+    "timeout": 30,
+    "wait_time": 5
 }
 
-log_level = 6
 ########################
 # configuration_method: 
 # Indicate the switch how the process to configure the switchport

@@ -8,6 +8,7 @@ from flask import request
 ### CONF IMPORT ###
 from config import mist_conf
 from config import configuration_method
+from config import site_outage
 
 ### OTHER IMPORTS ###
 import json
@@ -44,8 +45,10 @@ else:
 apitoken = mist_conf["apitoken"]
 mist_cloud = mist_conf["mist_cloud"]
 server_uri = mist_conf["server_uri"]
-timeout_site_outage = mist_conf["timeout_site_outage"]
-wait_site_outage = mist_conf["wait_site_outage"]
+site_outage_detection = site_outage["enabled"]
+timeout_site_outage = site_outage["timeout"]
+wait_site_outage = site_outage["wait_time"]
+
 
 ###########################
 ### VARS
@@ -58,21 +61,21 @@ server_port = 51360
 def _check_site_outage(level, level_id, ap_mac):
     console.info("Pausing to check possible outage on %s %s" %(level, level_id))
     time.sleep(wait_site_outage)
-    url = "https://%s/api/v1/%s/%s/devices" %(mist_cloud, level, level_id)    
+    url = "https://%s/api/v1/%s/%s/stats/devices" %(mist_cloud, level, level_id)    
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
     resp = req.get(url, headers=headers)["result"]
     oldest_change_timestamp = -1
     latest_change_timestamp = -1
-    ap_change_timestamp = -1
     for device in resp:
         if device["type"] == "ap":
-            if oldest_change_timestamp == -1 or oldest_change_timestamp > device["modified_time"]:
-                oldest_change_timestamp = device["modified_time"]
-            if latest_change_timestamp == -1 or latest_change_timestamp < device["modified_time"]:
-                latest_change_timestamp = device["modified_time"]
-            if device["mac"] == ap_mac:
-                ap_change_timestamp = device["modified_time"]
-    if oldest_change_timestamp + timeout_site_outage > ap_change_timestamp or latest_change_timestamp + timeout_site_outage < ap_change_timestamp:
+            if device["status"] == "connected":
+                return False
+            else:
+                if oldest_change_timestamp == -1 or oldest_change_timestamp > device["modified_time"]:
+                    oldest_change_timestamp = device["modified_time"]
+                if latest_change_timestamp == -1 or latest_change_timestamp < device["modified_time"]:
+                    latest_change_timestamp = device["modified_time"]
+    if latest_change_timestamp - oldest_change_timestamp <= timeout_site_outage:
         return True
     else:
         return False
@@ -114,7 +117,7 @@ def ap_event(event):
         level_id = ["org_id"]
     action = event["type"]    
     console.info("RECEIVED message %s for AP %s" %(action, mac))
-    if action == "AP_DISCONNECTED":
+    if action == "AP_DISCONNECTED" and site_outage_detection == True:
         site_out = _check_site_outage(level, level_id, mac)
     else:
         site_out = False
