@@ -13,6 +13,8 @@ mist_conf={
     "apitoken": "xxxxxxxxxxxxxxx",
     "mist_cloud": "api.mist.com",
     "server_uri": "/mist-webhooks",
+    "timeout_site_outage": 30,
+    "wait_site_outage": 5
 }
 
 log_level = 6
@@ -101,6 +103,6 @@ cso_method= {
         },
         "conf_ap": {
             "port_profile_name": "generic-trunk",
-            "native_vlan_id": 42
+            "native_vlan_id": 11
         }
     }
