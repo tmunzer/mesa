@@ -36,7 +36,7 @@ def get(url, headers={}, query={}):
         if not query == {}:
             for query_param in query:
                 html_query += "%s=%s&" %(query_param, query[query_param])
-        console.info("Request > GET %s" % url)
+        console.debug("Request > GET %s" % url)
         resp = requests.get(url, headers=headers)
         resp.raise_for_status()
     except HTTPError as http_err:
@@ -54,7 +54,7 @@ def post(url, headers={}, body=None):
     try: 
         if not "Content-Type" in headers:
             headers['Content-Type'] = "application/json"
-        console.info("Request > POST %s" % url)
+        console.debug("Request > POST %s" % url)
         console.debug("Request body: \r\n%s" % body)
         if type(body) == str:
             resp = requests.post(url, data=body, headers=headers)
@@ -76,7 +76,7 @@ def put(url, headers={}, body={}):
     Params: uri, HTTP body
     Return: HTTP response"""
     try:
-        console.info("Request > PUT %s" % url)
+        console.debug("Request > PUT %s" % url)
         console.debug("Request body: \r\n%s" % body)
         if type(body) == str:
             resp = requests.put(url, headers=headers, data=body)
@@ -98,7 +98,7 @@ def delete(url, headers={}):
     Params: uri
     Return: HTTP response"""
     try: 
-        console.info("Request > DELETE %s" % url)
+        console.debug("Request > DELETE %s" % url)
         resp = requests.delete(url, headers=headers)
         resp.raise_for_status()
     except HTTPError as http_err:
