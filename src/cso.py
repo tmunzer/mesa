@@ -63,8 +63,7 @@ def _get_apitoken():
     if resp["status_code"] == 200 or resp["status_code"] == 201:
         apitoken["token"] = resp["headers"]["X-Subject-Token"]
         apitoken["data"] = resp["result"]
-        console.info("CSO Authentication successful. New API token received (valid until %s)" %
-                     apitoken["data"]["token"]["expires_at"])
+        console.info("CSO Authentication successful")
     else:
         console.critical(
             "Unable to get access to CSO. Please check your authentication settings!")
@@ -180,7 +179,7 @@ def _set_switchport_config(switch_uuid, port_name, port_profile_uuid, lan_segmen
             ]
         }
     }
-    console.notice("""Sending request to CSO to apply new configuration on switch %s port %s:
+    console.notice("""SWITCH: %s | PORT: %s | Sending request to CSO to apply new configuration:
     Port profile name: %s
     Lan Segments: %s
     Native VLAN: %s """ % (switch_name, port_name, profile_name, lan_segments, native_lan))
@@ -200,7 +199,7 @@ def _deploy_switchport_config(switch_uuid, port_name, switch_name):
             ]
         }
     }
-    console.notice("Sending request to CSO to deploy new configuration on switch %s port %s" % (
+    console.notice("SWITCH: %s | PORT: %s | Sending request to CSO to deploy new configuration" % (
         switch_name, port_name))
     resp = req.post(url, headers, body)
     return resp["result"]

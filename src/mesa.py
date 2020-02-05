@@ -90,13 +90,13 @@ def _initiate_conf_change(action, level, level_id, mac):
         lldp_system_name = ap_info["lldp_system_name"]
         lldp_port_desc = ap_info["lldp_port_desc"]
         if configuration_method == "cso":
-            console.info("Port %s on switch %s will be configured through CSO" %(lldp_port_desc,lldp_system_name))
+            console.info("SWITCH: %s | PORT: %s | Configuration will be done through CSO" %(lldp_system_name, lldp_port_desc))
             if action == "AP_CONNECTED":
                 cso.ap_connected(mac, lldp_system_name, lldp_port_desc)
             elif action == "AP_DISCONNECTED":
                 cso.ap_disconnected(mac, lldp_system_name, lldp_port_desc)
         elif configuration_method == "ex":
-            console.info("Port %s on switch %s will be configured directly on the switch" %(lldp_port_desc,lldp_system_name))
+            console.info("SWITCH: %s | PORT: %s | configuration will be done directly on the switch" %(lldp_system_name, lldp_port_desc))
             if action == "AP_CONNECTED":
                 ex.ap_connected(mac, lldp_system_name, lldp_port_desc)
             elif action == "AP_DISCONNECTED":
@@ -113,7 +113,7 @@ def ap_event(event):
         level = "orgs"
         level_id = ["org_id"]
     action = event["type"]    
-    console.info("Received message %s for AP %s" %(action, mac))
+    console.info("RECEIVED message %s for AP %s" %(action, mac))
     if action == "AP_DISCONNECTED":
         site_out = _check_site_outage(level, level_id, mac)
     else:
