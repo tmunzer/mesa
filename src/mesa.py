@@ -9,7 +9,7 @@ from flask import request
 from config import mist_conf
 from config import configuration_method
 from config import site_outage
-
+import time
 ### OTHER IMPORTS ###
 import json
 from libs import req
@@ -63,27 +63,29 @@ def _process_timestamp(list_devices):
     num_aps = 0
     num_outaged_aps = 0
     percentage_outaged_aps = 0
+    now = round(time.time())
     for device in list_devices:
         if device["type"] == "ap":
             if device["status"] == "connected":
                 num_aps += 1
-            elif device["status"] == "disconnected" and device["modified_time"] < timeout_ap_removed:
+            elif device["status"] == "disconnected" and now - device["last_seen"] < timeout_ap_removed :
                 num_aps += 1
-                disconnected_device_timestamps.append(device["modified_time"])
+                disconnected_device_timestamps.append(device["last_seen"])
     disconnected_device_timestamps.sort()  
     if num_aps > 0:
         if num_aps <= 2:
             console.info("Site outage detection ignored. Less than 2 APs were connected during the last %s seconds: Processing the message" %(timeout_ap_removed))
             return False
         else:
-            for timestamp in disconnected_device_timestamps:
-                if timestamp < timeout_site_outage:
+            for timestamp in disconnected_device_timestamps:                
+                if now - timestamp < timeout_site_outage:
                     num_outaged_aps += 1
-            percentage_outaged_aps = num_outaged_aps / num_aps
             if percentage_outaged_aps >= min_disconnected_percentage:
+                percentage_outaged_aps = round((num_outaged_aps / num_aps) * 100) 
                 console.info("Site outage detected! %s%% of APs disconnected in less than %s seconds: Discarding the message" %(percentage_outaged_aps, timeout_site_outage))
                 return True
             else: 
+                percentage_outaged_aps = round((num_outaged_aps / num_aps) * 100) 
                 console.info("No site outage detected. %s%% of APs disconnected in less than %s seconds: Processing the message" %(percentage_outaged_aps, timeout_site_outage))
                 return False
     else:
