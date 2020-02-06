@@ -45,10 +45,12 @@ else:
 apitoken = mist_conf["apitoken"]
 mist_cloud = mist_conf["mist_cloud"]
 server_uri = mist_conf["server_uri"]
+site_id_ignored = mist_conf["site_id_ignored"]
 site_outage_detection = site_outage["enabled"]
-timeout_site_outage = site_outage["timeout"]
+timeout_site_outage = site_outage["outage_timeout"]
+timeout_ap_removed = site_outage["removed_timeout"]
 wait_site_outage = site_outage["wait_time"]
-
+min_disconnected_percentage = site_outage["min_disconnected_percentage"] / 100
 
 ###########################
 ### VARS
@@ -56,6 +58,37 @@ server_port = 51360
 
 ###########################
 ### FUNCTIONS
+def _process_timestamp(list_devices):
+    disconnected_device_timestamps = []   
+    num_aps = 0
+    num_outaged_aps = 0
+    percentage_outaged_aps = 0
+    for device in list_devices:
+        if device["type"] == "ap":
+            if device["status"] == "connected":
+                num_aps += 1
+            elif device["status"] == "disconnected" and device["modified_time"] < timeout_ap_removed:
+                num_aps += 1
+                disconnected_device_timestamps.append(device["modified_time"])
+    disconnected_device_timestamps.sort()  
+    if num_aps > 0:
+        if num_aps <= 2:
+            console.info("Site outage detection ignored. Less than 2 APs were connected during the last %s seconds: Processing the message" %(timeout_ap_removed))
+            return False
+        else:
+            for timestamp in disconnected_device_timestamps:
+                if timestamp < timeout_site_outage:
+                    num_outaged_aps += 1
+            percentage_outaged_aps = num_outaged_aps / num_aps
+            if percentage_outaged_aps >= min_disconnected_percentage:
+                console.info("Site outage detected! %s%% of APs disconnected in less than %s seconds: Discarding the message" %(percentage_outaged_aps, timeout_site_outage))
+                return True
+            else: 
+                console.info("No site outage detected. %s%% of APs disconnected in less than %s seconds: Processing the message" %(percentage_outaged_aps, timeout_site_outage))
+                return False
+    else:
+        return False
+
 
 # Function called when an AP is connected/disconnected
 def _check_site_outage(level, level_id, ap_mac):
@@ -63,27 +96,17 @@ def _check_site_outage(level, level_id, ap_mac):
     time.sleep(wait_site_outage)
     url = "https://%s/api/v1/%s/%s/stats/devices" %(mist_cloud, level, level_id)    
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
-    resp = req.get(url, headers=headers)["result"]
-    oldest_change_timestamp = -1
-    latest_change_timestamp = -1
-    for device in resp:
-        if device["type"] == "ap":
-            if device["status"] == "connected":
-                return False
-            else:
-                if oldest_change_timestamp == -1 or oldest_change_timestamp > device["modified_time"]:
-                    oldest_change_timestamp = device["modified_time"]
-                if latest_change_timestamp == -1 or latest_change_timestamp < device["modified_time"]:
-                    latest_change_timestamp = device["modified_time"]
-    if latest_change_timestamp - oldest_change_timestamp <= timeout_site_outage:
-        return True
-    else:
-        return False
+    resp = req.get(url, headers=headers)
+    if "result" in resp:
+        return _process_timestamp(resp["result"])
+    
 
 def _get_ap_details(level, level_id, mac):
     url = "https://%s/api/v1/%s/%s/devices/search?mac=%s" %(mist_cloud, level, level_id, mac)    
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
-    return req.get(url, headers=headers)["result"]
+    resp = req.get(url, headers=headers)
+    if "result" in resp:
+        return resp["result"]
 
 def _initiate_conf_change(action, level, level_id, mac):
     resp = _get_ap_details(level, level_id, mac)
@@ -112,6 +135,8 @@ def ap_event(event):
     if "site_id" in event:
         level = "sites"
         level_id = event["site_id"]
+        if level_id in site_id_ignored:
+            return False
     else:
         level = "orgs"
         level_id = ["org_id"]
@@ -119,12 +144,8 @@ def ap_event(event):
     console.info("RECEIVED message %s for AP %s" %(action, mac))
     if action == "AP_DISCONNECTED" and site_outage_detection == True:
         site_out = _check_site_outage(level, level_id, mac)
-    else:
-        site_out = False
-    if site_out == False:
+    if action == "AP_CONNECTED" or site_out == False:
         _initiate_conf_change(action, level, level_id, mac)
-    else: 
-        console.critical("All APs from %s %s were disconnected in less than %s seconds!!! Aborting configuration change!!!" %(level, level_id, timeout_site_outage * 2))
 
 ###########################
 ### ENTRY POINT
@@ -140,14 +161,5 @@ def postJsonHandler():
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=server_port)
-
-
-
-
-
-
-
-
-
 
 

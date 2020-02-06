@@ -12,7 +12,8 @@
 mist_conf={
     "apitoken": "xxxxxxxxxxxxxxx",
     "mist_cloud": "api.mist.com",
-    "server_uri": "/mist-webhooks"
+    "server_uri": "/mist-webhooks",
+    "site_id_ignored": []
 }
 log_level = 6
 ########################
@@ -31,7 +32,9 @@ log_level = 6
 #               (in this case, no modification will be done on the sites)
 site_outage = {
     "enabled": True,
-    "timeout": 30,
+    "outage_timeout": 30,
+    "removed_timeout": 85400,
+    "min_disconnected_percentage": 50,
     "wait_time": 5
 }
 
