@@ -162,7 +162,7 @@ def _find_lan_segments_uuid(lan_segments, vlan_id=None):
 # Configure swtich port
 
 
-def _set_switchport_config(switch_uuid, port_name, port_profile_uuid, lan_segment_uuids=[], native_vlan_uuid=None, switch_name="N/A", profile_name="N/A", lan_segments="N/A", native_lan="N/A"):
+def _set_switchport_config(level_name, switch_uuid, port_name, port_profile_uuid, lan_segment_uuids=[], native_vlan_uuid=None, switch_name="N/A", profile_name="N/A", lan_segments="N/A", native_lan="N/A"):
     url = "%s/tssm/apply-port-config-association" % url_prefix
     headers = {"x-auth-token": apitoken["token"]}
     body = {
@@ -179,17 +179,17 @@ def _set_switchport_config(switch_uuid, port_name, port_profile_uuid, lan_segmen
             ]
         }
     }
-    console.notice("""SWITCH: %s | PORT: %s | Sending request to CSO to apply new configuration:
+    console.notice("""SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to apply new configuration:
     Port profile name: %s
     Lan Segments: %s
-    Native VLAN: %s """ % (switch_name, port_name, profile_name, lan_segments, native_lan))
+    Native VLAN: %s """ % (level_name, switch_name, port_name, profile_name, lan_segments, native_lan))
     resp = req.post(url, headers, body)
     return resp["result"]
 
 # Deploy and Commit switch configuration
 
 
-def _deploy_switchport_config(switch_uuid, port_name, switch_name):
+def _deploy_switchport_config(level_name, switch_uuid, port_name, switch_name):
     url = "%s/tssm/deploy-port-config-association" % url_prefix
     headers = {"x-auth-token": apitoken["token"]}
     body = {
@@ -199,8 +199,8 @@ def _deploy_switchport_config(switch_uuid, port_name, switch_name):
             ]
         }
     }
-    console.notice("SWITCH: %s | PORT: %s | Sending request to CSO to deploy new configuration" % (
-        switch_name, port_name))
+    console.notice("SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to deploy new configuration" % (
+        level_name, switch_name, port_name))
     resp = req.post(url, headers, body)
     return resp["result"]
 
@@ -215,7 +215,7 @@ def _init(hostname):
     return [switch_uuid, lan_segments]
 
 
-def ap_connected(mac, lldp_system_name, lldp_port_desc):
+def ap_connected(level_name, mac, lldp_system_name, lldp_port_desc):
     switch_uuid, lan_segments = _init(lldp_system_name)
     port_profile_uuid = __find_port_profile_uuid(
         port_profile_ap["port_profile_name"])
@@ -224,10 +224,10 @@ def ap_connected(mac, lldp_system_name, lldp_port_desc):
         lan_segments, port_profile_ap["native_vlan_id"])
     _set_switchport_config(switch_uuid, lldp_port_desc, port_profile_uuid, lan_segment_uuids,
                            native_vlan_uuid[0], lldp_system_name, port_profile_ap["port_profile_name"], "All", port_profile_ap["native_vlan_id"])
-    _deploy_switchport_config(switch_uuid, lldp_port_desc, lldp_system_name)
+    _deploy_switchport_config(level_name, switch_uuid, lldp_port_desc, lldp_system_name)
 
 
-def ap_disconnected(mac, lldp_system_name, lldp_port_desc):
+def ap_disconnected(level_name, mac, lldp_system_name, lldp_port_desc):
     switch_uuid, lan_segments = _init(lldp_system_name)
     port_profile_uuid = __find_port_profile_uuid(
         port_profile_default["port_profile_name"])
@@ -235,4 +235,4 @@ def ap_disconnected(mac, lldp_system_name, lldp_port_desc):
         lan_segments, port_profile_default["vlan_id"])
     _set_switchport_config(switch_uuid, lldp_port_desc, port_profile_uuid,
                            lan_segment_uuid, None, lldp_system_name, port_profile_default["port_profile_name"],port_profile_default["vlan_id"])
-    _deploy_switchport_config(switch_uuid, lldp_port_desc, lldp_system_name)
+    _deploy_switchport_config(level_name, switch_uuid, lldp_port_desc, lldp_system_name)
