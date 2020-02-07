@@ -50,15 +50,15 @@ server_port = 51360
 ###########################
 ### FUNCTIONS
 
-def _disconnect_validation(level, level_id, ap_mac, lldp_system_name, lldp_port_desc):
+def _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc):
     if disconnect_validation_method == "outage":  
         console.info("Pausing to check possible outage on %s %s" %(level, level_id))
         time.sleep(disconnect_validation_wait_time)      
-        return outage_detection.site_online(level, level_id, ap_mac)
+        return outage_detection.site_online(level, level_id, level_name, ap_mac)
     elif disconnect_validation_method == "lldp":
         console.info("Pausing to check possible outage on %s %s" %(level, level_id))
         time.sleep(disconnect_validation_wait_time)
-        return lldp_detection.ap_still_connected(level, level_id, ap_mac, lldp_system_name, lldp_port_desc)
+        return lldp_detection.ap_still_connected(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
     else:
         return True
 
@@ -79,17 +79,17 @@ def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
         if configuration_method == "cso":
             console.info("SITE: %s | SWITCH: %s | PORT: %s | Configuration will be done through CSO" %(level_name, lldp_system_name, lldp_port_desc))
             if action == "AP_CONNECTED":
-                cso.ap_connected(ap_mac, lldp_system_name, lldp_port_desc)
+                cso.ap_connected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
             elif action == "AP_DISCONNECTED":
-                disconnect_validated = _disconnect_validation(level, level_id, ap_mac, lldp_system_name, lldp_port_desc)
-                if disconnect_validated == True: cso.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc)
+                disconnect_validated = _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
+                if disconnect_validated == True: cso.ap_disconnected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
         elif configuration_method == "ex":
             console.info("SITE: %s | SWITCH: %s | PORT: %s | configuration will be done directly on the switch" %(level_name, lldp_system_name, lldp_port_desc))
             if action == "AP_CONNECTED":
-                ex.ap_connected(mac, lldp_system_name, lldp_port_desc)
+                ex.ap_connected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
             elif action == "AP_DISCONNECTED":
-                disconnect_validated = _disconnect_validation(level, level_id, ap_mac, lldp_system_name, lldp_port_desc)
-                if disconnect_validated == True: ex.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc)
+                disconnect_validated = _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
+                if disconnect_validated == True: ex.ap_disconnected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
     else:
         console.warning("Received %s for AP %s, but I'm unable to find it in %s %s" %(action, ap_mac, level, level_id))
 

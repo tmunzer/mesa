@@ -222,7 +222,7 @@ def ap_connected(level_name, mac, lldp_system_name, lldp_port_desc):
     lan_segment_uuids = _find_lan_segments_uuid(lan_segments, None)
     native_vlan_uuid = _find_lan_segments_uuid(
         lan_segments, port_profile_ap["native_vlan_id"])
-    _set_switchport_config(switch_uuid, lldp_port_desc, port_profile_uuid, lan_segment_uuids,
+    _set_switchport_config(level_name, switch_uuid, lldp_port_desc, port_profile_uuid, lan_segment_uuids,
                            native_vlan_uuid[0], lldp_system_name, port_profile_ap["port_profile_name"], "All", port_profile_ap["native_vlan_id"])
     _deploy_switchport_config(level_name, switch_uuid, lldp_port_desc, lldp_system_name)
 
@@ -233,6 +233,6 @@ def ap_disconnected(level_name, mac, lldp_system_name, lldp_port_desc):
         port_profile_default["port_profile_name"])
     lan_segment_uuid = _find_lan_segments_uuid(
         lan_segments, port_profile_default["vlan_id"])
-    _set_switchport_config(switch_uuid, lldp_port_desc, port_profile_uuid,
+    _set_switchport_config(level_name, switch_uuid, lldp_port_desc, port_profile_uuid,
                            lan_segment_uuid, None, lldp_system_name, port_profile_default["port_profile_name"],port_profile_default["vlan_id"])
     _deploy_switchport_config(level_name, switch_uuid, lldp_port_desc, lldp_system_name)
