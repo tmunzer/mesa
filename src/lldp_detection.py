@@ -49,22 +49,26 @@ def _get_switch_mac(level, level_id, switch_name):
 def _get_switchport_info(level, level_id, switch_name, port_name):
     switch_mac = _get_switch_mac(level, level_id, switch_name)
     if switch_mac:
-        url = "https://%s/api/v1/%s/%s/stats/switch_ports/search?mac=%s&port_id=%s" %(mist_cloud, level, level_id, switch_mac, port_name)    
+        url = "https://%s/api/v1/%s/%s/stats/switch_ports/search?switch=%s&port_id=%s" %(mist_cloud, level, level_id, switch_mac, port_name)    
         headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
         resp = req.get(url, headers=headers)
         if "result" in resp and "results" in resp["result"]:
             if len(resp["result"]["results"]) == 1:
                 return resp["result"]["results"][0]
-        console.error("SWITCH: %s | Unable to get the switch info" %(switch_name))
+        console.error("SWITCH: %s | Unable to get the switchport info" %(switch_name))
 
 def ap_still_connected(level, level_id, ap_mac, switch_name, port_name):
-    swichport_info = _get_switchport_info(level, level_id, switch_name, port_name)
+    swichport_info = _get_switchport_info(level, level_id, switch_name, port_name)    
     if swichport_info == None:
         console.error("SWITCH: %s | PORT: %s | Unable to retrieve information: Discarding the message" %(switch_name, port_name))
         return False
-    # No device connected to the switch port
+    # switch port is down
+    elif not "up" in swichport_info:
+        console.info("SWITCH: %s | PORT: %s | Switchport down: Processing the message" %(switch_name, port_name))
+        return True
+    # No device connected to the switch port (but switchport UP???)
     elif not "neighbor_mac" in swichport_info:
-        console.info("SWITCH: %s | PORT: %s | No device connected to the switchport: Processing the message" %(switch_name, port_name))
+        console.info("SWITCH: %s | PORT: %s | Switchport UP but no device connected to the switchport: Processing the message" %(switch_name, port_name))
         return True
     # Other device connected to the switchport
     elif not swichport_info["neighbor_mac"] == ap_mac:
