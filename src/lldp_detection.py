@@ -25,13 +25,14 @@ server_uri = mist_conf["server_uri"]
 ### FUNCTIONS
 
 def _get_switch_info(level, level_id, switch_name):
-    url = "https://%s/api/v1/%s/%s/devices/search?type=switch&hostname=%s" %(mist_cloud, level, level_id, switch_name)    
+    url = "https://%s/api/v1/%s/%s/devices/search?type=switch&hostname=%s" %(mist_cloud, level, level_id, switch_name)     
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
     resp = req.get(url, headers=headers)
-    if "result" in resp and "results" in resp["result"]["results"]:
+    if "result" in resp and "results" in resp["result"]:
         if len(resp["result"]["results"]) == 1:
             return resp["result"]["results"][0]
     console.error("SWITCH: %s | Unable to get the switch info" %(switch_name))
+    return []
         
     
 
@@ -40,24 +41,29 @@ def _get_switch_mac(level, level_id, switch_name):
     switch_info = _get_switch_info(level, level_id, switch_name)
     if not "mac" in switch_info:
         console.error("SWITCH: %s | Unable to get the MAC Address if the switch" %(switch_name))
+        return False
     else:
         return switch_info["mac"]
 
 
 def _get_switchport_info(level, level_id, switch_name, port_name):
     switch_mac = _get_switch_mac(level, level_id, switch_name)
-    url = "https://%s/api/v1/%s/%s/stats/switch_ports/search?mac=%s&port_id=%s" %(mist_cloud, level, level_id, switch_mac, port_name)    
-    headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
-    resp = req.get(url, headers=headers)
-    if "result" in resp and "results" in resp["result"]["results"]:
-        if len(resp["result"]["results"]) == 1:
-            return resp["result"]["results"][0]
-    console.error("SWITCH: %s | Unable to get the switch info" %(switch_name))
+    if switch_mac:
+        url = "https://%s/api/v1/%s/%s/stats/switch_ports/search?mac=%s&port_id=%s" %(mist_cloud, level, level_id, switch_mac, port_name)    
+        headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
+        resp = req.get(url, headers=headers)
+        if "result" in resp and "results" in resp["result"]:
+            if len(resp["result"]["results"]) == 1:
+                return resp["result"]["results"][0]
+        console.error("SWITCH: %s | Unable to get the switch info" %(switch_name))
 
 def ap_still_connected(level, level_id, ap_mac, switch_name, port_name):
     swichport_info = _get_switchport_info(level, level_id, switch_name, port_name)
+    if swichport_info == None:
+        console.error("SWITCH: %s | PORT: %s | Unable to retrieve information: Discarding the message" %(switch_name, port_name))
+        return False
     # No device connected to the switch port
-    if not "neighbor_mac" in swichport_info:
+    elif not "neighbor_mac" in swichport_info:
         console.info("SWITCH: %s | PORT: %s | No device connected to the switchport: Processing the message" %(switch_name, port_name))
         return True
     # Other device connected to the switchport
