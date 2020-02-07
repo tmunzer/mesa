@@ -50,7 +50,7 @@ site_outage_detection = site_outage["enabled"]
 timeout_site_outage = site_outage["outage_timeout"]
 timeout_ap_removed = site_outage["removed_timeout"]
 wait_site_outage = site_outage["wait_time"]
-min_disconnected_percentage = site_outage["min_disconnected_percentage"] / 100
+min_disconnected_percentage = site_outage["min_percentage"] / 100
 
 ###########################
 ### VARS
@@ -64,6 +64,7 @@ def _process_timestamp(list_devices):
     num_outaged_aps = 0
     percentage_outaged_aps = 0
     now = round(time.time())
+    # remove devices disconnected for a long time and gather last seen timestamp for devices disconnected recently
     for device in list_devices:
         if device["type"] == "ap":
             if device["status"] == "connected":
@@ -72,20 +73,26 @@ def _process_timestamp(list_devices):
                 num_aps += 1
                 disconnected_device_timestamps.append(device["last_seen"])
     disconnected_device_timestamps.sort()  
+    # we should not get "0" devices, but this is a security to not divide by 0
     if num_aps > 0:
+        # if small site the result will not be useable, so processing the message
         if num_aps <= 2:
             console.info("Site outage detection ignored. Less than 2 APs were connected during the last %s seconds: Processing the message" %(timeout_ap_removed))
             return False
         else:
-            for timestamp in disconnected_device_timestamps:                
+            # check if the devices were disconnect before of after the site outage timeout
+            for timestamp in disconnected_device_timestamps:            
                 if now - timestamp < timeout_site_outage:
                     num_outaged_aps += 1
+            percentage_outaged_aps = (num_outaged_aps / num_aps) 
+            # if the number of devices is greater than the configured limit, outage detectect, discarding the message
             if percentage_outaged_aps >= min_disconnected_percentage:
-                percentage_outaged_aps = round((num_outaged_aps / num_aps) * 100) 
+                percentage_outaged_aps = round(percentage_outaged_aps * 100) 
                 console.info("Site outage detected! %s%% of APs disconnected in less than %s seconds: Discarding the message" %(percentage_outaged_aps, timeout_site_outage))
                 return True
+            # otherwise, no outage detected, processing the message
             else: 
-                percentage_outaged_aps = round((num_outaged_aps / num_aps) * 100) 
+                percentage_outaged_aps = round(percentage_outaged_aps * 100) 
                 console.info("No site outage detected. %s%% of APs disconnected in less than %s seconds: Processing the message" %(percentage_outaged_aps, timeout_site_outage))
                 return False
     else:

@@ -9,6 +9,8 @@
 #                       api.eu.mist.com if you are using EU Cloud
 # server_uri:           uri where you want to receive wehbooks messages
 #                       on this server. 
+# site_id_ignored:      Array of site ids you want to ignore (MESA will 
+#                       not change the port configuration on these sites)
 mist_conf={
     "apitoken": "xxxxxxxxxxxxxxx",
     "mist_cloud": "api.mist.com",
@@ -24,17 +26,25 @@ log_level = 6
 # In the 1st case, the switchport will be revert back to its default
 # configuration.
 # In the 2nd case, the switchport will not be revert back.
-# enable:       enable or not the outage detection logic
-# timeout:      maximum duration (in seconds) between the first and the
-#               last AP disconnection to detect the outage. 
-# wait_time:    Time to wait (in seconds) before start the test to detect
-#               if it's one AP disconnected or a general outage on the site
-#               (in this case, no modification will be done on the sites)
+# enable:           enable or not the outage detection logic
+# outage_timeout:   maximum duration (in seconds) between the first and
+#                   the last AP disconnection to detect the outage. 
+# removed_timeout:  if the device disconnection is older that "removed_timeout"
+#                   (seconds), MESA will not count it in the number of devices
+#                   present on this site (AP physically removed from the site 
+#                   but not from the Mist UI)
+# min_percentage:   Percentage (0-100) of devices that have to be disconnected
+#                   for less than "outage_timeout" to consider the site as 
+#                   outaged and not process the message
+# wait_time:        Time to wait (in seconds) before start the test to 
+#                   detect if it's one AP disconnected or a general outage
+#                   on the site(in this case, no modification will be done 
+#                   on the sites)
 site_outage = {
     "enabled": True,
     "outage_timeout": 30,
     "removed_timeout": 85400,
-    "min_disconnected_percentage": 50,
+    "min_percentage": 50,
     "wait_time": 5
 }
 
