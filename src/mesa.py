@@ -3,13 +3,6 @@
 from flask import Flask
 from flask import json
 from flask import request
-
-
-### CONF IMPORT ###
-from config import mist_conf
-from config import configuration_method
-from config import site_outage
-import time
 ### OTHER IMPORTS ###
 import json
 from libs import req
@@ -26,10 +19,19 @@ finally:
     from libs.debug import Console
     console = Console(log_level)
 
-#if os.path.isfile(portal_file_name):
-#    f = open("./data.py", w+)
-#    f.close()
-#from 
+###########################
+### LOADING SETTINGS
+from config import mist_conf
+from config import disconnect_validation
+from config import configuration_method
+
+apitoken = mist_conf["apitoken"]
+mist_cloud = mist_conf["mist_cloud"]
+server_uri = mist_conf["server_uri"]
+site_id_ignored = mist_conf["site_id_ignored"]
+disconnect_validation_method = disconnect_validation["method"]
+disconnect_validation_wait_time = disconnect_validation["wait_time"]
+
 ###########################
 ### METHODS IMPORT ###
 if configuration_method == "cso":
@@ -39,76 +41,26 @@ elif configuration_method == "ex":
 else:
     console.critical("Error in the configuration file. Please check the configuration_method variable! Exiting...")
     exit(255)
-###########################
-### PARAMETERS
-
-apitoken = mist_conf["apitoken"]
-mist_cloud = mist_conf["mist_cloud"]
-server_uri = mist_conf["server_uri"]
-site_id_ignored = mist_conf["site_id_ignored"]
-site_outage_detection = site_outage["enabled"]
-timeout_site_outage = site_outage["outage_timeout"]
-timeout_ap_removed = site_outage["removed_timeout"]
-wait_site_outage = site_outage["wait_time"]
-min_disconnected_percentage = site_outage["min_percentage"] / 100
-
+import outage_detection
+import lldp_detection
 ###########################
 ### VARS
 server_port = 51360
 
 ###########################
 ### FUNCTIONS
-def _process_timestamp(list_devices):
-    disconnected_device_timestamps = []   
-    num_aps = 0
-    num_outaged_aps = 0
-    percentage_outaged_aps = 0
-    now = round(time.time())
-    # remove devices disconnected for a long time and gather last seen timestamp for devices disconnected recently
-    for device in list_devices:
-        if device["type"] == "ap":
-            if device["status"] == "connected":
-                num_aps += 1
-            elif device["status"] == "disconnected" and now - device["last_seen"] < timeout_ap_removed :
-                num_aps += 1
-                disconnected_device_timestamps.append(device["last_seen"])
-    disconnected_device_timestamps.sort()  
-    # we should not get "0" devices, but this is a security to not divide by 0
-    if num_aps > 0:
-        # if small site the result will not be useable, so processing the message
-        if num_aps <= 2:
-            console.info("Site outage detection ignored. Less than 2 APs were connected during the last %s seconds: Processing the message" %(timeout_ap_removed))
-            return False
-        else:
-            # check if the devices were disconnect before of after the site outage timeout
-            for timestamp in disconnected_device_timestamps:            
-                if now - timestamp < timeout_site_outage:
-                    num_outaged_aps += 1
-            percentage_outaged_aps = (num_outaged_aps / num_aps) 
-            # if the number of devices is greater than the configured limit, outage detectect, discarding the message
-            if percentage_outaged_aps >= min_disconnected_percentage:
-                percentage_outaged_aps = round(percentage_outaged_aps * 100) 
-                console.info("Site outage detected! %s%% of APs disconnected in less than %s seconds: Discarding the message" %(percentage_outaged_aps, timeout_site_outage))
-                return True
-            # otherwise, no outage detected, processing the message
-            else: 
-                percentage_outaged_aps = round(percentage_outaged_aps * 100) 
-                console.info("No site outage detected. %s%% of APs disconnected in less than %s seconds: Processing the message" %(percentage_outaged_aps, timeout_site_outage))
-                return False
+
+def _disconnect_validation(level, level_id, ap_mac, lldp_system_name, lldp_port_desc):
+    if disconnect_validation_method == "outage":  
+        console.info("Pausing to check possible outage on %s %s" %(level, level_id))
+        time.sleep(disconnect_validation_wait_time)      
+        return outage_detection.site_online(level, level_id, ap_mac)
+    elif disconnect_validation_method == "lldp":
+        console.info("Pausing to check possible outage on %s %s" %(level, level_id))
+        time.sleep(disconnect_validation_wait_time)
+        return lldp_detection.ap_still_connected(level, level_id, ap_mac, lldp_system_name, lldp_port_desc)
     else:
-        return False
-
-
-# Function called when an AP is connected/disconnected
-def _check_site_outage(level, level_id, ap_mac):
-    console.info("Pausing to check possible outage on %s %s" %(level, level_id))
-    time.sleep(wait_site_outage)
-    url = "https://%s/api/v1/%s/%s/stats/devices" %(mist_cloud, level, level_id)    
-    headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
-    resp = req.get(url, headers=headers)
-    if "result" in resp:
-        return _process_timestamp(resp["result"])
-    
+        return True
 
 def _get_ap_details(level, level_id, mac):
     url = "https://%s/api/v1/%s/%s/devices/search?mac=%s" %(mist_cloud, level, level_id, mac)    
@@ -117,27 +69,29 @@ def _get_ap_details(level, level_id, mac):
     if "result" in resp:
         return resp["result"]
 
-def _initiate_conf_change(action, level, level_id, mac):
-    resp = _get_ap_details(level, level_id, mac)
+def _initiate_conf_change(action, level, level_id, ap_mac):
+    resp = _get_ap_details(level, level_id, ap_mac)
     if "results" in resp and len(resp["results"]) == 1: 
-        console.debug("AP %s found in %s %s" %(mac, level, level_id))
+        console.debug("AP %s found in %s %s" %(ap_mac, level, level_id))
         ap_info = resp["results"][0]
         lldp_system_name = ap_info["lldp_system_name"]
         lldp_port_desc = ap_info["lldp_port_desc"]
         if configuration_method == "cso":
             console.info("SWITCH: %s | PORT: %s | Configuration will be done through CSO" %(lldp_system_name, lldp_port_desc))
             if action == "AP_CONNECTED":
-                cso.ap_connected(mac, lldp_system_name, lldp_port_desc)
+                cso.ap_connected(ap_mac, lldp_system_name, lldp_port_desc)
             elif action == "AP_DISCONNECTED":
-                cso.ap_disconnected(mac, lldp_system_name, lldp_port_desc)
+                disconnect_validated = _disconnect_validation(level, level_id, ap_mac, lldp_system_name, lldp_port_desc)
+                if disconnect_validated == True: cso.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc)
         elif configuration_method == "ex":
             console.info("SWITCH: %s | PORT: %s | configuration will be done directly on the switch" %(lldp_system_name, lldp_port_desc))
             if action == "AP_CONNECTED":
                 ex.ap_connected(mac, lldp_system_name, lldp_port_desc)
             elif action == "AP_DISCONNECTED":
-                ex.ap_disconnected(mac, lldp_system_name, lldp_port_desc)
+                disconnect_validated = _disconnect_validation(level, level_id, ap_mac, lldp_system_name, lldp_port_desc)
+                if disconnect_validated == True: ex.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc)
     else:
-        console.warning("Received %s for AP %s, but I'm unable to find it in %s %s" %(action, mac, level, level_id))
+        console.warning("Received %s for AP %s, but I'm unable to find it in %s %s" %(action, ap_mac, level, level_id))
 
 def ap_event(event):
     mac = event["ap"]
@@ -151,10 +105,7 @@ def ap_event(event):
         level_id = ["org_id"]
     action = event["type"]    
     console.info("RECEIVED message %s for AP %s" %(action, mac))
-    if action == "AP_DISCONNECTED" and site_outage_detection == True:
-        site_out = _check_site_outage(level, level_id, mac)
-    if action == "AP_CONNECTED" or site_out == False:
-        _initiate_conf_change(action, level, level_id, mac)
+    _initiate_conf_change(action, level, level_id, mac)
 
 ###########################
 ### ENTRY POINT

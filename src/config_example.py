@@ -18,11 +18,34 @@ mist_conf={
     "site_id_ignored": []
 }
 log_level = 6
+
 ########################
-# site_outage
+# disconnect_validation
+# Indicate the script if the AP_DISCONNECT message has to be verified.
+# method: Method to use to valide the AP_DISCONNECT. Possible methods are
+# - none:   no validation. Will change the switchport confiugration back
+#           to the default when the message is received
+# - outage: check if the is a site outage by looking at the number of APs
+#           disconnected during the last XX.
+# - lldp:   retrieve the lldp information on the switchport (trough Mist
+#           APIs) to check if it's still UP, and if the MAC address is the
+#           MAC address of the AP.
+# wait_time:        Time to wait (in seconds) before start the test to 
+#                   detect if it's one AP disconnected or a general outage
+#                   on the site(in this case, no modification will be done 
+#                   on the sites)
+disconnect_validation = {
+    "method": "lldp",
+    "wait_time": 5
+} 
+
+
+########################
+# site_outage_aps
 # logic to detect if the message is received because the AP is really
 # disconnected from the network or if all the APs from the site are 
-# reported as disconnected.
+# reported as disconnected. This method is looking at the number of APs
+# disconnected during the last XX seconds
 # In the 1st case, the switchport will be revert back to its default
 # configuration.
 # In the 2nd case, the switchport will not be revert back.
@@ -36,21 +59,15 @@ log_level = 6
 # min_percentage:   Percentage (0-100) of devices that have to be disconnected
 #                   for less than "outage_timeout" to consider the site as 
 #                   outaged and not process the message
-# wait_time:        Time to wait (in seconds) before start the test to 
-#                   detect if it's one AP disconnected or a general outage
-#                   on the site(in this case, no modification will be done 
-#                   on the sites)
-site_outage = {
-    "enabled": True,
+site_outage_aps = {    
     "outage_timeout": 30,
     "removed_timeout": 85400,
-    "min_percentage": 50,
-    "wait_time": 5
+    "min_percentage": 50
 }
 
 ########################
 # configuration_method: 
-# Indicate the switch how the process to configure the switchport
+# Indicate the script how to configure the switchport
 #
 # value "cso":      The script will use CSO to configure the switchport. 
 #                   You'll have to set the "cso" settings bellow
