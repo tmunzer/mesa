@@ -80,9 +80,6 @@ def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
             lldp_system_name = ap_info["lldp_system_name"]
             lldp_port_desc = ap_info["lldp_port_desc"]
 
-            console.slack.set_switch(lldp_system_name)
-            console.slack.set_port(lldp_port_desc)
-
             if configuration_method == "cso":
                 console.info("SITE: %s | SWITCH: %s | PORT: %s | Configuration will be done through CSO" %(level_name, lldp_system_name, lldp_port_desc))
                 if action == "AP_CONNECTED":
@@ -98,12 +95,12 @@ def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
                     disconnect_validated = _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
                     if disconnect_validated == True: ex.ap_disconnected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
         else:
-            console.warning("SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" %(action, ap_mac, level, level_id))    
+            console.warning("SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" %(level_name, action, ap_mac))    
     else:
-        console.warning("SITE: %s | Received %s for AP %s, but I'm unable to find it" %(action, ap_mac, level, level_id))
+        console.warning("SITE: %s | Received %s for AP %s, but I'm unable to find it" %(level_name, action, ap_mac))
 
 def ap_event(event):
-    mac = event["ap"]
+    mac = event["ap"] 
     if "site_id" in event:
         level = "sites"
         level_id = event["site_id"]
@@ -115,12 +112,7 @@ def ap_event(event):
         level_id = ["org_id"]
         level_name = "ROOT_ORG"
     action = event["type"]    
-
-
-    console.slack.set_ap_mac(mac)
-    console.slack.set_site(level_name)
-    console.slack.set_action(action)
-    console.info("SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
+    console.notice("SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
     _initiate_conf_change(action, level, level_id, level_name, mac)
 
 ###########################
@@ -130,7 +122,7 @@ app = Flask(__name__)
 def postJsonHandler():
     content = request.get_json()
     for event in content["events"]:
-        if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED":            
+        if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED":         
             ap_event(event)
             console.slack.send_message()
     return '', 200

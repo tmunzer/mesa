@@ -489,6 +489,17 @@ mist_conf={
 log_level = 6
 
 ########################
+# slack_conf
+# if the script has to send logs to slack webhook. To get the Slack 
+# Webhook URL, please go to https://api.slack.com/app
+# enabled:      if you want to enable Slack reporting
+# url:          URL of your slack webhook
+slack_conf = {
+    "enabled" : False,
+    "url": "https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX"
+}
+
+########################
 # disconnect_validation
 # Indicate the script if the AP_DISCONNECT message has to be verified.
 # method: Method to use to valide the AP_DISCONNECT. Possible methods are

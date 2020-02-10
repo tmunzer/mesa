@@ -175,9 +175,7 @@ def _set_switchport_config(site_name, switch_uuid, port_name, port_profile_uuid,
     console.notice("""CSO SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to apply new configuration:
     Port profile name: %s
     Lan Segments: %s
-    Native VLAN: %s """ % (site_name, switch_name, port_name, profile_name, lan_segments, native_lan))
-
-    console.slack.set_conf("Port profile name: %s\r\nLan Segments: %s\r\nNative VLAN: %s" %(profile_name, lan_segments, native_lan))
+    Native VLAN: %s """ % (site_name, switch_name, port_name, profile_name, lan_segments, native_lan))    
 
     resp = req.post(url, headers, body)
     return resp["result"]
@@ -196,9 +194,7 @@ def _deploy_switchport_config(site_name, switch_uuid, port_name, switch_name):
         }
     }
     console.notice("CSO SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to deploy new configuration" % (
-        site_name, switch_name, port_name))
-
-    console.slack.set_status("Success (deployed through CSO)")
+        site_name, switch_name, port_name))    
 
     resp = req.post(url, headers, body)
     return resp["result"]
