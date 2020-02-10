@@ -68,7 +68,7 @@ def ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_na
         return True
     # No device connected to the switch port (but switchport UP???)
     elif not "neighbor_mac" in swichport_info:
-        console.info("SITE: %s | SWITCH: %s | PORT: %s | Switchport UP but no device connected to the switchport: Processing the message" %(level_name, switch_name, port_name))
+        console.warning("SITE: %s | SWITCH: %s | PORT: %s | Switchport UP but no device connected to the switchport: Processing the message" %(level_name, switch_name, port_name))
         return True
     # Other device connected to the switchport
     elif not swichport_info["neighbor_mac"] == ap_mac:
@@ -76,6 +76,6 @@ def ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_na
         return True
     # AP still connected to the switchport
     else:
-        console.info("SITE: %s | SWITCH: %s | PORT: %s | AP still connected to the switport. Possible outage: Discarding the message" %(level_name, switch_name, port_name))
+        console.warning("SITE: %s | SWITCH: %s | PORT: %s | AP still connected to the switport. Possible outage: Discarding the message" %(level_name, switch_name, port_name))
         return False
 
