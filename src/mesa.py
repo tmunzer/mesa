@@ -10,20 +10,11 @@ import os
 import time
 
 ###########################
-### LOGGING SETTINGS
-try:
-    from config import log_level
-except:
-    log_level = 6
-finally:
-    from libs.debug import Console
-    console = Console(log_level)
-
-###########################
 ### LOADING SETTINGS
 from config import mist_conf
 from config import disconnect_validation
 from config import configuration_method
+from config import slack_conf
 
 apitoken = mist_conf["apitoken"]
 mist_cloud = mist_conf["mist_cloud"]
@@ -31,6 +22,17 @@ server_uri = mist_conf["server_uri"]
 site_id_ignored = mist_conf["site_id_ignored"]
 disconnect_validation_method = disconnect_validation["method"]
 disconnect_validation_wait_time = disconnect_validation["wait_time"]
+
+
+###########################
+### LOGGING SETTINGS
+try:
+    from config import log_level
+except:
+    log_level = 6
+finally:
+    from libs.debug import Console
+    console = Console(log_level, slack_conf)
 
 ###########################
 ### METHODS IMPORT ###
@@ -77,13 +79,17 @@ def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
         if "lldp_system_name" in ap_info and "lldp_port_desc" in ap_info:
             lldp_system_name = ap_info["lldp_system_name"]
             lldp_port_desc = ap_info["lldp_port_desc"]
+
+            console.slack.set_switch(lldp_system_name)
+            console.slack.set_port(lldp_port_desc)
+
             if configuration_method == "cso":
                 console.info("SITE: %s | SWITCH: %s | PORT: %s | Configuration will be done through CSO" %(level_name, lldp_system_name, lldp_port_desc))
                 if action == "AP_CONNECTED":
-                    cso.ap_connected(ap_mac, lldp_system_name, lldp_port_desc)
+                    cso.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console)
                 elif action == "AP_DISCONNECTED":
                     disconnect_validated = _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
-                    if disconnect_validated == True: cso.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc)
+                    if disconnect_validated == True: cso.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console)
             elif configuration_method == "ex":
                 console.info("SITE: %s | SWITCH: %s | PORT: %s | configuration will be done directly on the switch" %(level_name, lldp_system_name, lldp_port_desc))
                 if action == "AP_CONNECTED":
@@ -109,6 +115,11 @@ def ap_event(event):
         level_id = ["org_id"]
         level_name = "ROOT_ORG"
     action = event["type"]    
+
+
+    console.slack.set_ap_mac(mac)
+    console.slack.set_site(level_name)
+    console.slack.set_action(action)
     console.info("SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
     _initiate_conf_change(action, level, level_id, level_name, mac)
 
@@ -119,8 +130,9 @@ app = Flask(__name__)
 def postJsonHandler():
     content = request.get_json()
     for event in content["events"]:
-        if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED":
+        if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED":            
             ap_event(event)
+            console.slack.send_message()
     return '', 200
 
 

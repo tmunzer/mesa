@@ -40,7 +40,7 @@ def _get_switch_info(level, level_id, level_name, switch_name):
 def _get_switch_mac(level, level_id, level_name, switch_name):
     switch_info = _get_switch_info(level, level_id, level_name, switch_name)
     if not "mac" in switch_info:
-        console.error("SITE: %s | SWITCH: %s | Unable to get the MAC Address if the switch" %(level_name, switch_name))
+        console.error("SITE: %s | SWITCH: %s | Unable to get the MAC Address of the switch" %(level_name, switch_name))
         return False
     else:
         return switch_info["mac"]
