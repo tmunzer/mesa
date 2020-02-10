@@ -74,7 +74,7 @@ def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
     if "results" in resp and len(resp["results"]) == 1: 
         console.debug("AP %s found in %s %s" %(ap_mac, level, level_id))
         ap_info = resp["results"][0]
-        if "lldp_system_name" in ap_info and "lldp_port_desc" in ap_info
+        if "lldp_system_name" in ap_info and "lldp_port_desc" in ap_info:
             lldp_system_name = ap_info["lldp_system_name"]
             lldp_port_desc = ap_info["lldp_port_desc"]
             if configuration_method == "cso":
