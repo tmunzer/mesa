@@ -1,8 +1,8 @@
 FROM python:3
 
 LABEL maintainer="tmunzer@juniper.net"
-LABEL one.stag.mesa.version="1.0.0"
-LABEL one.stag.mesa.release-date="2020-01-23"
+LABEL one.stag.mesa.version="1.1.0"
+LABEL one.stag.mesa.release-date="2020-02-10"
 
 COPY ./src /app/
 
