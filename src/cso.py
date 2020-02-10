@@ -7,14 +7,7 @@ from config import cso_method
 
 ###########################
 # LOGGING SETTINGS
-try:
-    from config import log_level
-except:
-    log_level = 6
-finally:
-    from libs.debug import Console
-    console = Console(log_level)
-
+console = None
 ###########################
 # PARAMETERS
 user = cso_method["login"]
@@ -156,7 +149,7 @@ def _find_lan_segments_uuid(site_name, lan_segments, vlan_id=None):
             lan_segment_uuid.append(lan_segment["uuid"])
     if len(lan_segment_uuid) == 0:
         console.error(
-            "CSO SITE: %s | Unable to find the vlan %s. The configuration will fail, Stopping the prorcess..." %(site_name, vlan_id))
+            "CSO SITE: %s | Unable to find the vlan %s. The configuration will fail, Stopping the prorcess..." %(site_name, vlan_id))        
     return lan_segment_uuid
 
 # Configure swtich port
@@ -182,7 +175,8 @@ def _set_switchport_config(site_name, switch_uuid, port_name, port_profile_uuid,
     console.notice("""CSO SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to apply new configuration:
     Port profile name: %s
     Lan Segments: %s
-    Native VLAN: %s """ % (site_name, switch_name, port_name, profile_name, lan_segments, native_lan))
+    Native VLAN: %s """ % (site_name, switch_name, port_name, profile_name, lan_segments, native_lan))    
+
     resp = req.post(url, headers, body)
     return resp["result"]
 
@@ -200,7 +194,8 @@ def _deploy_switchport_config(site_name, switch_uuid, port_name, switch_name):
         }
     }
     console.notice("CSO SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to deploy new configuration" % (
-        site_name, switch_name, port_name))
+        site_name, switch_name, port_name))    
+
     resp = req.post(url, headers, body)
     return resp["result"]
 
@@ -218,7 +213,9 @@ def _init(hostname):
         return [site_name, switch_uuid, None]
 
 
-def ap_connected(mac, lldp_system_name, lldp_port_desc):
+def ap_connected(mac, lldp_system_name, lldp_port_desc, o_console):
+    global console 
+    console = o_console
     site_name, switch_uuid, lan_segments = _init(lldp_system_name)
     if switch_uuid:
         port_profile_uuid = __find_port_profile_uuid(site_name, port_profile_ap["port_profile_name"])
@@ -231,7 +228,9 @@ def ap_connected(mac, lldp_system_name, lldp_port_desc):
                 _deploy_switchport_config(site_name, switch_uuid, lldp_port_desc, lldp_system_name)
 
 
-def ap_disconnected(mac, lldp_system_name, lldp_port_desc):
+def ap_disconnected(mac, lldp_system_name, lldp_port_desc, o_console):
+    global console 
+    console = o_console
     site_name, switch_uuid, lan_segments = _init(lldp_system_name)
     if switch_uuid:
         port_profile_uuid = __find_port_profile_uuid(site_name, port_profile_default["port_profile_name"])

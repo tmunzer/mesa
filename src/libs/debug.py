@@ -1,4 +1,5 @@
 from datetime import datetime
+from .slack import Slack
 import logging as log
 import os
 
@@ -23,9 +24,10 @@ class Console:
     7: debug
     """
 
-    def __init__(self, level=6):
+    def __init__(self, level=6, slack_config = None):
         self.level = level
-        log.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+        self.slack = Slack(slack_config)
+        log.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))        
 
     def get_datetime(self):
             now = datetime.now()
@@ -34,39 +36,55 @@ class Console:
     def emergency(self, message):
         if self.level >= 0:
             dt = self.get_datetime()
-            print(dt + magenta(' EMERGENCY: ') + message)
+            data = dt + magenta(' EMERGENCY: ') + message
+            print(data)
+            self.slack.add_messages("*EMERGENCY*: " + message, 0)
 
     def alert(self, message):
         if self.level >= 1:
             dt = self.get_datetime()
-            print(dt + magenta(' ALERT: ') + message)
+            data = dt + magenta(' ALERT: ') + message
+            print(data)
+            self.slack.add_messages("*ALERT*: " + message, 1)
 
     def critical(self, message):
         if self.level >= 2:
             dt = self.get_datetime()
-            print(dt + magenta(' CRITICAL: ') + message)
+            data = dt + magenta(' CRITICAL: ') + message
+            print(data)
+            self.slack.add_messages("*CRITICAL*: " + message, 2)
 
     def error(self, message):
         if self.level >= 3:
             dt = self.get_datetime()
-            print(dt + red(' ERROR: ') + message)
+            data = dt + red(' ERROR: ') + message
+            print(data)
+            self.slack.add_messages("*ERROR*: " + message, 3)
 
     def warning(self, message):
         if self.level >= 4:
             dt = self.get_datetime()
-            print(dt + yellow(' WARNING: ') + message)
+            data = dt + yellow(' WARNING: ') + message
+            print(data)
+            self.slack.add_messages("*WARNING*: " + message, 4)
 
     def notice(self, message):
         if self.level >= 5:
             dt = self.get_datetime()
-            print(dt + blue(' NOTICE: ') + message)
+            data = dt + blue(' NOTICE: ') + message
+            print(data)
+            self.slack.add_messages("*NOTICE*: " + message, 5)
 
     def info(self, message):
         if self.level >= 6:
             dt = self.get_datetime()
-            print(dt + green(' INFO: ') + message)
+            data = dt + green(' INFO: ') + message
+            print(data)
+            self.slack.add_messages("*INFO*: " + message, 6)
 
     def debug(self, message):
         if self.level >= 7:
             dt = self.get_datetime()
-            print(dt + white(' DEBUG: ') + message)
+            data = dt + white(' DEBUG: ') + message
+            print(data)
+            self.slack.add_messages("*DEBUG*: " + message, 7)
