@@ -24,9 +24,9 @@ class Console:
     7: debug
     """
 
-    def __init__(self, level=6, slack_config = None):
+    def __init__(self, level=6, slack_config = None, configuration_method = None):
         self.level = level
-        self.slack = Slack(slack_config)
+        self.slack = Slack(slack_config, configuration_method)
         log.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))        
 
     def get_datetime(self):

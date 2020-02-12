@@ -5,13 +5,7 @@ from libs import req
 
 ###########################
 ### LOGGING SETTINGS
-try:
-    from config import log_level
-except:
-    log_level = 6
-finally:
-    from libs.debug import Console
-    console = Console(log_level)
+console = None
 
 ###########################
 ### LOADING SETTINGS
@@ -57,7 +51,9 @@ def _get_switchport_info(level, level_id, level_name, switch_name, port_name):
                 return resp["result"]["results"][0]
         console.error("MIST SITE: %s | SWITCH: %s | Unable to get the switchport info" %(level_name, switch_name))
 
-def ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_name):
+def ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_name, o_console):
+    global console
+    console = o_console
     swichport_info = _get_switchport_info(level, level_id, level_name, switch_name, port_name)    
     if swichport_info == None:
         console.error("MIST SITE: %s | SWITCH: %s | PORT: %s | Unable to retrieve information: Discarding the message" %(level_name, switch_name, port_name))
@@ -71,7 +67,7 @@ def ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_na
         console.warning("MIST SITE: %s | SWITCH: %s | PORT: %s | Switchport UP but no device connected to the switchport: Processing the message" %(level_name, switch_name, port_name))
         return True
     # Other device connected to the switchport
-    elif not swichport_info["neighbor_mac"] == ap_mac.replace(":",""):
+    elif not swichport_info["neighbor_mac"].replace(":","") == ap_mac.replace(":",""):
         console.info("MIST SITE: %s | SWITCH: %s | PORT: %s | Device connected to the switchport is not the AP AP (Device MAC %s): Processing the message" %(level_name, switch_name, port_name, swichport_info["neighbor_mac"]))
         return True
     # AP still connected to the switchport

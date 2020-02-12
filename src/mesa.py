@@ -23,6 +23,17 @@ site_id_ignored = mist_conf["site_id_ignored"]
 disconnect_validation_method = disconnect_validation["method"]
 disconnect_validation_wait_time = disconnect_validation["wait_time"]
 
+###########################
+### METHODS IMPORT ###
+if configuration_method == "cso":
+    import cso
+elif configuration_method == "ex":
+    import ex
+else:
+    print("Error in the configuration file. Please check the configuration_method variable! Exiting...")
+    exit(255)
+import outage_detection
+import lldp_detection
 
 ###########################
 ### LOGGING SETTINGS
@@ -32,19 +43,9 @@ except:
     log_level = 6
 finally:
     from libs.debug import Console
-    console = Console(log_level, slack_conf)
+    console = Console(log_level, slack_conf, configuration_method)
 
-###########################
-### METHODS IMPORT ###
-if configuration_method == "cso":
-    import cso
-elif configuration_method == "ex":
-    import ex
-else:
-    console.critical("Error in the configuration file. Please check the configuration_method variable! Exiting...")
-    exit(255)
-import outage_detection
-import lldp_detection
+
 ###########################
 ### VARS
 server_port = 51360
@@ -60,7 +61,7 @@ def _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name
     elif disconnect_validation_method == "lldp":
         console.info("Pausing to check possible outage on %s %s" %(level, level_id))
         time.sleep(disconnect_validation_wait_time)
-        return lldp_detection.ap_still_connected(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
+        return lldp_detection.ap_still_connected(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console)
     else:
         return True
 
@@ -68,12 +69,13 @@ def _get_ap_details(level, level_id, mac):
     url = "https://%s/api/v1/%s/%s/devices/search?mac=%s" %(mist_cloud, level, level_id, mac)    
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
     resp = req.get(url, headers=headers)
-    if "result" in resp:
+    if resp and "result" in resp:
         return resp["result"]
+    else: return None
 
 def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
     resp = _get_ap_details(level, level_id, ap_mac)
-    if "results" in resp and len(resp["results"]) == 1: 
+    if resp and "results" in resp and len(resp["results"]) == 1: 
         console.debug("AP %s found in %s %s" %(ap_mac, level, level_id))
         ap_info = resp["results"][0]
         if "lldp_system_name" in ap_info and "lldp_port_desc" in ap_info:
@@ -81,23 +83,23 @@ def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
             lldp_port_desc = ap_info["lldp_port_desc"]
 
             if configuration_method == "cso":
-                console.notice("SITE: %s | SWITCH: %s | PORT: %s | Configuration will be done through CSO" %(level_name, lldp_system_name, lldp_port_desc))
+                console.notice("MIST SITE: %s | SWITCH: %s | PORT: %s | Configuration will be done through CSO" %(level_name, lldp_system_name, lldp_port_desc))
                 if action == "AP_CONNECTED":
                     cso.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console)
                 elif action == "AP_DISCONNECTED":
                     disconnect_validated = _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
                     if disconnect_validated == True: cso.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console)
             elif configuration_method == "ex":
-                console.notice("SITE: %s | SWITCH: %s | PORT: %s | configuration will be done directly on the switch" %(level_name, lldp_system_name, lldp_port_desc))
+                console.notice("MIST SITE: %s | SWITCH: %s | PORT: %s | configuration will be done directly on the switch" %(level_name, lldp_system_name, lldp_port_desc))
                 if action == "AP_CONNECTED":
                     ex.ap_connected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
                 elif action == "AP_DISCONNECTED":
                     disconnect_validated = _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
                     if disconnect_validated == True: ex.ap_disconnected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
         else:
-            console.warning("SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" %(level_name, action, ap_mac))    
+            console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" %(level_name, action, ap_mac))    
     else:
-        console.warning("SITE: %s | Received %s for AP %s, but I'm unable to find it" %(level_name, action, ap_mac))
+        console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable to find it" %(level_name, action, ap_mac))
 
 def ap_event(event):
     mac = event["ap"] 
@@ -112,7 +114,7 @@ def ap_event(event):
         level_id = ["org_id"]
         level_name = "ROOT_ORG"
     action = event["type"]    
-    console.notice("SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
+    console.notice("MIST SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
     _initiate_conf_change(action, level, level_id, level_name, mac)
 
 ###########################
