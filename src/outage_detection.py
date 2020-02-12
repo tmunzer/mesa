@@ -45,7 +45,7 @@ def _process_timestamp(level_name, list_devices):
     if num_aps > 0:
         # if small site the result will not be useable, so processing the message
         if num_aps <= 2:
-            console.info("SITE: %s | Site outage detection ignored. Less than 2 APs were connected during the last %s seconds: Processing the message" %(level_name, timeout_ap_removed))
+            console.info("MIST SITE: %s | Site outage detection ignored. Less than 2 APs were connected during the last %s seconds: Processing the message" %(level_name, timeout_ap_removed))
             return True
         else:
             # check if the devices were disconnect before of after the site outage timeout
@@ -56,12 +56,12 @@ def _process_timestamp(level_name, list_devices):
             # if the number of devices is greater than the configured limit, outage detectect, discarding the message
             if percentage_outaged_aps >= min_disconnected_percentage:
                 percentage_outaged_aps = round(percentage_outaged_aps * 100) 
-                console.info("SITE: %s | Site outage detected! %s%% of APs disconnected in less than %s seconds: Discarding the message" %(level_name, percentage_outaged_aps, timeout_site_outage))
+                console.info("MIST SITE: %s | Site outage detected! %s%% of APs disconnected in less than %s seconds: Discarding the message" %(level_name, percentage_outaged_aps, timeout_site_outage))
                 return False
             # otherwise, no outage detected, processing the message
             else: 
                 percentage_outaged_aps = round(percentage_outaged_aps * 100) 
-                console.info("SITE: %s | No site outage detected. %s%% of APs disconnected in less than %s seconds: Processing the message" %(level_name, percentage_outaged_aps, timeout_site_outage))
+                console.info("MIST SITE: %s | No site outage detected. %s%% of APs disconnected in less than %s seconds: Processing the message" %(level_name, percentage_outaged_aps, timeout_site_outage))
                 return False
     else:
         return True
