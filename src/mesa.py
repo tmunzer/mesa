@@ -73,7 +73,30 @@ def _get_ap_details(level, level_id, mac):
         return resp["result"]
     else: return None
 
-def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
+def _get_new_site_name(device, level_name):
+    url = "https://%s/api/v1/sites/%s" %(mist_cloud, device["site_id"])
+    headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
+    resp = req.get(url, headers=headers)
+    if resp and "result" in resp:
+        return (resp["result"]["name"], resp["result"]["id"])
+    else:
+        console.error("MIST AP %s | Not on site %s anymore, and unable to find where it is. Aborting..." %(device["mac"], level_name))
+
+def _deep_dive_lookup_for_ap(org_id, action, level, level_id, level_name, ap_mac, retry):
+    url = "https://%s/api/v1/orgs/%s/inventory" %(mist_cloud, org_id)  
+    headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
+    resp = req.get(url, headers=headers)
+    if resp and "result" in resp:
+        for device in resp["result"]:
+            if device["mac"] == ap_mac:
+                site_name, site_id = _get_new_site_name(device, level_name)
+                console.notice("MIST AP %s | Has been moved from site %s to site %s. Processing with the new site..." %(ap_mac, level_name, site_name))
+                _initiate_conf_change(action, "sites", site["id"], site_name, ap_mac, retry=True)
+                break
+    else:
+        console.error("MIST AP %s | May have been removed from the Org before I get the message. Unable to retrieve the required informations. Aborting...")
+
+def _initiate_conf_change(action, level, level_id, level_name, ap_mac, retry = None):
     resp = _get_ap_details(level, level_id, ap_mac)
     if resp and "results" in resp and len(resp["results"]) == 1: 
         console.debug("AP %s found in %s %s" %(ap_mac, level, level_id))
@@ -98,7 +121,9 @@ def _initiate_conf_change(action, level, level_id, level_name, ap_mac):
                     if disconnect_validated == True: ex.ap_disconnected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
         else:
             console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" %(level_name, action, ap_mac))    
-    else:
+    elif not retry:
+        _deep_dive_lookup_for_ap(org_id, action, level, level_id, level_name, ap_mac, retry)
+    else: 
         console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable to find it" %(level_name, action, ap_mac))
 
 def ap_event(event):
