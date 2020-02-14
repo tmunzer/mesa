@@ -106,16 +106,18 @@ def ap_event(event):
     if "site_id" in event:
         level = "sites"
         level_id = event["site_id"]
-        level_name = event["site_name"]
-        if level_id in site_id_ignored:
-            return False
+        if "site_name" in event: level_name = event["site_name"]
+        else: level_name = "no site name"
     else:
         level = "orgs"
         level_id = ["org_id"]
         level_name = "ROOT_ORG"
     action = event["type"]    
-    console.notice("MIST SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
-    _initiate_conf_change(action, level, level_id, level_name, mac)
+    if level_id in site_id_ignored:
+        console.notice("MIST SITE: %s | RECEIVED message %s for AP %s, but site %s should be ignored. Discarding the message..." %(level_name, action, mac, level_id))
+    else:
+        console.notice("MIST SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
+        _initiate_conf_change(action, level, level_id, level_name, mac)
 
 ###########################
 ### ENTRY POINT
