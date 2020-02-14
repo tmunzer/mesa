@@ -91,12 +91,12 @@ def _deep_dive_lookup_for_ap(org_id, action, level, level_id, level_name, ap_mac
             if device["mac"] == ap_mac:
                 site_name, site_id = _get_new_site_name(device, level_name)
                 console.notice("MIST AP %s | Has been moved from site %s to site %s. Processing with the new site..." %(ap_mac, level_name, site_name))
-                _initiate_conf_change(action, "sites", site["id"], site_name, ap_mac, retry=True)
+                _initiate_conf_change(action, org_id, "sites", site_id, site_name, ap_mac, retry=True)
                 break
     else:
         console.error("MIST AP %s | May have been removed from the Org before I get the message. Unable to retrieve the required informations. Aborting...")
 
-def _initiate_conf_change(action, level, level_id, level_name, ap_mac, retry = None):
+def _initiate_conf_change(action, org_id, level, level_id, level_name, ap_mac, retry = None):
     resp = _get_ap_details(level, level_id, ap_mac)
     if resp and "results" in resp and len(resp["results"]) == 1: 
         console.debug("AP %s found in %s %s" %(ap_mac, level, level_id))
@@ -131,18 +131,20 @@ def ap_event(event):
     if "site_id" in event:
         level = "sites"
         level_id = event["site_id"]
+        org_id = event["org_id"]
         if "site_name" in event: level_name = event["site_name"]
         else: level_name = "no site name"
     else:
         level = "orgs"
-        level_id = ["org_id"]
+        level_id = event["org_id"]
+        org_id = event["org_id"]
         level_name = "ROOT_ORG"
     action = event["type"]    
     if level_id in site_id_ignored:
         console.notice("MIST SITE: %s | RECEIVED message %s for AP %s, but site %s should be ignored. Discarding the message..." %(level_name, action, mac, level_id))
     else:
         console.notice("MIST SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac))
-        _initiate_conf_change(action, level, level_id, level_name, mac)
+        _initiate_conf_change(action, org_id, level, level_id, level_name, mac)
 
 ###########################
 ### ENTRY POINT
