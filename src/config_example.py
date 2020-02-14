@@ -39,6 +39,8 @@ slack_conf = {
 # - lldp:   retrieve the lldp information on the switchport (trough Mist
 #           APIs) to check if it's still UP, and if the MAC address is the
 #           MAC address of the AP.
+#           WARNING: For lldp method, the EX switch must be assigned to the
+#                    same site as the APs connected to it!!!
 # wait_time:        Time to wait (in seconds) before start the test to 
 #                   detect if it's one AP disconnected or a general outage
 #                   on the site(in this case, no modification will be done 
