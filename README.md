@@ -38,6 +38,12 @@ The following steps are explaining the communication when using CSO integration.
 7. CSO will deploy the new configuration, which will change the switchport from access mode to trunk mode and configure the required VLANs (7)
 8. When an admin disconnects an AP from any switchport, the process will be the same, except that the configuration will be generated to revert the switchport back to the “secured_profile” (containing the 802.1X/MAB settigs)
 
+# Added features (optional):
+* Site outage for AP_DISCONNECTED: the system can check if many APs from the samel site are disconnected in a short period of time. In this case, it will consider a site outage and will not revert the switchport back to its "default" configuration
+* LLDP Validation for AP_DISCONNECTED(requires Wired Assurance): the system will check the switch information, and check if the neighbor LLDP information on the switchport where the AP was connected. If no devices are connected to the switchport, or if it's not corresponding to the AP information, the script will revert the switchport back to its "default" configuration. Otherwise, the message is discarted. 
+* Slack notifification when a AP_DISCONNECTED / AP_CONNECTED message is received, which the configuration change applied.
+<img src="__readme_img/slack.png" width="40%">
+
 # How to use it
 ## Docker Image
 You can easily deploy this application with [Docker](https://www.docker.com/). The image is publicly available on Docker Hub at https://hub.docker.com/r/tmunzer/mesa/.
@@ -49,13 +55,6 @@ The Automation script will allow you to easily
 * Manage HTTPS certificates with self-signed certificates 
 * Download, Deploy, Update the application container
 To use this script, just download it [here](mesa.sh), and run it in a terminal.
-
-
-### Added features (optional):
-* Site outage for AP_DISCONNECTED: the system can check if many APs from the samel site are disconnected in a short period of time. In this case, it will consider a site outage and will not revert the switchport back to its "default" configuration
-* LLDP Validation for AP_DISCONNECTED(requires Wired Assurance): the system will check the switch information, and check if the neighbor LLDP information on the switchport where the AP was connected. If no devices are connected to the switchport, or if it's not corresponding to the AP information, the script will revert the switchport back to its "default" configuration. Otherwise, the message is discarted. 
-* Slack notifification when a AP_DISCONNECTED / AP_CONNECTED message is received, which the configuration change applied.
-<img src="__readme_img/slack.png" width="40%">
 
 ### Deployment Script Configuration
 When you are starting the script for the first time, it will ask some question:
