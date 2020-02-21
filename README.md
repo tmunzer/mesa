@@ -50,6 +50,12 @@ The Automation script will allow you to easily
 * Download, Deploy, Update the application container
 To use this script, just download it [here](mesa.sh), and run it in a terminal.
 
+
+### Added features (optional):
+* Slack notifification when a AP_DISCONNECTED / AP_CONNECTED message is received, which the configuration change applied
+* Site outage for AP_DISCONNECTED: the system can check if many APs from the samel site are disconnected in a short period of time. In this case, it will consider a site outage and will not revert the switchport back to its "default" configuration
+* LLDP Validation for AP_DISCONNECTED(requires Wired Assurance): the system will check the switch information, and check if the neighbor LLDP information on the switchport where the AP was connected. If no devices are connected to the switchport, or if it's not corresponding to the AP information, the script will revert the switchport back to its "default" configuration. Otherwise, the message is discarted. 
+
 ### Deployment Script Configuration
 When you are starting the script for the first time, it will ask some question:
 ##### Application FQDN
