@@ -107,7 +107,7 @@ class Slack:
                     }
                 ]
             }
-
+            print(body)
             data = json.dumps(body)
             data = data.encode("ascii")
             requests.post(self.url, headers={"Content-type": "application/json"}, data=data)
