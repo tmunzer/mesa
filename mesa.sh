@@ -516,7 +516,7 @@ slack_conf = {
 #                   on the sites)
 disconnect_validation = {
     "method": "lldp",
-    "wait_time": 5
+    "wait_time": 30
 } 
 
 
