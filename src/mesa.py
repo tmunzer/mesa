@@ -159,7 +159,7 @@ def postJsonHandler():
     global active_threads
     content = request.get_json()
     for event in content["events"]:
-        if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED":  
+        if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED"  or event["type"] == "AP_RESTARTED":  
             this_thread = active_threads 
             active_threads +=1
             process = Thread(target=ap_event, args=(event, this_thread, active_threads))
