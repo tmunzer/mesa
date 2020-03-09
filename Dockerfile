@@ -7,7 +7,7 @@ LABEL one.stag.mesa.release-date="2020-02-27"
 WORKDIR /app
 
 ENV FLASK_APP mesa.py
-ENV FLASK_RUN_HOST 0.0.0.0
+ENV FLASK_RUN_HOST 0.0.0.0:51360
 COPY /src/requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
