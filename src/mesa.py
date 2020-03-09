@@ -17,7 +17,7 @@ import time
 from threading import Thread
 
 from mongo import MesaDB
-mesa_db = MesaDB()
+mesa_db = MesaDB(server="mist-mongo")
 
 ###########################
 # LOADING SETTINGS
