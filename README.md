@@ -56,7 +56,7 @@ The Automation script will allow you to easily
 * Download, Deploy, Update the application container
 To use this script, just download it [here](mesa.sh), and run it in a terminal.
 
-### Deployment Script Configuration
+
 When you are starting the script for the first time, it will ask some question:
 ##### Application FQDN
 This parameter is very important, and the value must be resolvable by the HTTP clients. The script is deploying a NGINX containter in front of the application container. NGINX will be in charge to manage HTTPS connections, and to route the HTTP/HTTPS traffic to the right application (it is build to allow to run different applications on the same server). This routing is done based on the `host` parameter in the HTTP headers.
@@ -64,11 +64,19 @@ This parameter is very important, and the value must be resolvable by the HTTP c
 ##### Permanent Folder
 The script will automatically create a folder in the permanent folder you configured. This folder will be used to store permanent data from the application. The script will also generate a `config.py` file containing configuration example and help.
 
-You will have to configure the file before starting the application.
+## Docker-Compose
+You can find a docker-compose.yaml file in the root folder of the repository. This file can be used to quickly deploy the app without using the automation script.
+Please note, in this case, you will have to manually generate all the required configuration files!
+
+## Configuration
 ### MESA Configuration
 Before starting the MESA application, you will have to configure it. To do so, edit the file `config.py` located in the folder permananent_folder/mesa created by the deployment script.
 
 The file `config.py`already contains the configuration structure with example values. 
+
+If you want to manually create this file, you can check the `src/config_example.py` file to see the required variables.
+
+## Usage
 ### Start/Stop the MESA Application
 This can be done through the deployment script, or directly by using Docker commands. If you do it manually, you will have to start/stop both containers, `jwilder/nginx-proxy` and `tmunzer/mesa`.
 ### Docker Tips
@@ -79,3 +87,4 @@ Depending on your system and your settings, you may have to add `sudo` in front 
 - `docker stop <container_id>`: manually stop a docker container.
 - `docker logs <container_id>`: show the container logs
 - `docker logs -f <container_id>`: continuously show the container logs
+
