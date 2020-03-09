@@ -39,7 +39,7 @@ def _ex_connect(level_name, dev, switch):
     try:
         dev.open()
         cu = Config(dev)
-        console.notice("SITE: %s | SWITCH: %s | Connected" %(level_name, switch))
+        console.info("SITE: %s | SWITCH: %s | Connected" %(level_name, switch))
         return cu
     except:
         console.error("SITE: %s | SWITCH: %s | Unable to connect" %(level_name, switch))
@@ -49,7 +49,7 @@ def _ex_connect(level_name, dev, switch):
 def _ex_lock(level_name, cu, switch):
     try:
         cu.lock()
-        console.notice("SITE: %s | SWITCH: %s | Configuration locked" %(level_name, switch))
+        console.info("SITE: %s | SWITCH: %s | Configuration locked" %(level_name, switch))
         return True
     except:
         console.error("SITE: %s | SWITCH: %s | Unable to lock configuration" %(level_name, switch))
@@ -59,7 +59,7 @@ def _ex_lock(level_name, cu, switch):
 def _ex_commit(level_name, cu, switch):
     try:
         cu.commit()
-        console.notice("SITE: %s | SWITCH: %s | Configuration commited" %(level_name, switch))
+        console.info("SITE: %s | SWITCH: %s | Configuration commited" %(level_name, switch))
         return True
     except:
         console.error("SITE: %s | SWITCH: %s | Unable to commit configuration" %(level_name, switch))
@@ -69,7 +69,7 @@ def _ex_commit(level_name, cu, switch):
 def _ex_unlock(level_name, cu, switch):
     try:
         cu.unlock()
-        console.notice("SITE: %s | SWITCH: %s | Configuration unlocked" %(level_name, switch))
+        console.info("SITE: %s | SWITCH: %s | Configuration unlocked" %(level_name, switch))
         return True
     except:
         console.error("SITE: %s | SWITCH: %s | Unable to unlock configuration" %(level_name, switch))

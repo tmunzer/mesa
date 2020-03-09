@@ -18,6 +18,7 @@ function create_app_container
     $DOCKER create \
     --security-opt label:disable \
     -v $PERSISTANT_FOLDER/$APP_NAME/config.py:/app/config.py:ro \
+    --link "$DB_NAME:mist-mongo" \
     --name="$APP_NAME" \
     --restart="on-failure:5" \
     --memory=128m \
@@ -56,6 +57,14 @@ NGINX_CERTS_FOLDER="certs"
 NGINX_NAME="mist-proxy"
 NGINX_IMG="jwilder/nginx-proxy"
 
+
+# =========================================================
+# mongoDB server configuration
+# true if email server is needed by the App
+
+DB_FOLDER="mongoDB"
+DB_NAME="mist-mongo"
+DB_IMG="mongo"
 
 DOCKER=""
 
@@ -188,6 +197,7 @@ function init_script_conf
   fi
   if echo "$PERSISTANT_FOLDER" | grep -i [a-z] > /dev/null
   then
+    DB_FOLDER="$PERSISTANT_FOLDER/$DB_FOLDER"
     NGINX_CERTS_FOLDER="$PERSISTANT_FOLDER/$NGINX_CERTS_FOLDER"
     echo -e "${INFOC}INFO${NC}: Script configuration loaded succesfully."
   else
@@ -376,18 +386,30 @@ function check_image #$XX_IMG
 
 function deploy_images
 {
+  if [ "$DB_IMG" ]
+  then
+    pull_image $DB_IMG
+  fi
   pull_image $NGINX_IMG
   pull_image $APP_IMG
 }
 
 function remove_images
 {
-    $DOCKER rmi $NGINX_IMG
+  if [ "$DB_IMG"]
+  then
+    $DOCKER rmi $DB_IMG
+  fi
+  $DOCKER rmi $NGINX_IMG
   $DOCKER rmi $APP_IMG
 }
 
 function check_images
-{
+{  
+  if [ "$DB_IMG"]
+  then
+    check_image $DB_IMG
+  fi
   check_image $NGINX_IMG
   check_image $APP_IMG
 }
@@ -417,6 +439,25 @@ function menu_images
 ################################################################################
 ############################    CREATE DOCKER CONTAINERS
 ################################################################################
+function create_mongo_container
+{
+  if [ `$DOCKER ps -a | grep $DB_NAME | wc -l` -eq 0 ]
+  then
+    echo "INFO: $DB_NAME container not present. Creating it..."
+    $DOCKER create \
+    --name $DB_NAME \
+    -v $DB_FOLDER:/data/db \
+    $DB_IMG
+    if [ $? -eq 0 ]
+    then
+      echo "INFO: $DB_NAME container is now created."
+    else
+      echo "ERROR: $DB_NAME container can't be created."
+    fi
+  else
+    echo "INFO: $DB_NAME container is already created."
+  fi
+}
 
 function create_nginx_container
 {
@@ -673,6 +714,9 @@ function result_banner
   echo ""
   echo -e "${INFOC}INFO${NC}: NGINX SSL/TLS certifcates are in $NGINX_CERTS_FOLDER"
   echo ""
+echo -e "${INFOC}INFO${NC}: MongoDB files are in $DB_FOLDER"
+  echo ""
+  echo ""
   echo -e "${INFOC}INFO${NC}: $APP_NAME interface should now be avaible soon"
   echo "      https://$NODEJS_VHOST"
   echo ""
@@ -683,11 +727,18 @@ function result_banner
 function start_containers
 {
 
+  if [ "$DB_NAME" ]
+  then
+    start_container $DB_NAME
+    retvalDB=$?
+  else
+    retvalDB=0
+  fi
   start_container $NGINX_NAME
   retvalNGINX=$?
   start_container $APP_NAME
   retvalAPP=$?
-  if  [ $retvalNGINX -eq 0 ] && [ $retvalAPP -eq 0 ]
+  if  [ $retvalDB -eq 0 ] && [ $retvalNGINX -eq 0 ] && [ $retvalAPP -eq 0 ] 
   then
     result_banner
   else
@@ -702,6 +753,10 @@ function start_containers
 
 function create_containers
 {
+  if [ "$DB_NAME" ]
+  then
+    create_mongo_container
+  fi
   create_nginx_container
   create_app_container $APP_NAME $VHOST
 }
@@ -887,7 +942,8 @@ function init_script
   check_docker
 
   init_script_conf
-
+  
+  check_folder "Database" $DB_FOLDER
   check_folder "Certificates" $NGINX_CERTS_FOLDER
   check_folder "App" "$PERSISTANT_FOLDER/$APP_NAME"
   check_folder "bower_components" "$PERSISTANT_FOLDER/bower_components"

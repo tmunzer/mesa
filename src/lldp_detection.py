@@ -49,7 +49,7 @@ def _get_switchport_info(level, level_id, level_name, switch_name, port_name, co
                 return resp["result"]["results"][0]
         console.error("MIST SITE: %s | SWITCH: %s | Unable to get the switchport info" %(level_name, switch_name))
 
-def ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_name, wait_time, console):
+def ap_disconnected(level, level_id, level_name, ap_mac, switch_name, port_name, wait_time, console):
     swichport_info = _get_switchport_info(level, level_id, level_name, switch_name, port_name, console)    
     if swichport_info == None:
         console.error("MIST SITE: %s | SWITCH: %s | PORT: %s | Unable to retrieve information: Discarding the message" %(level_name, switch_name, port_name))
@@ -73,5 +73,5 @@ def ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_na
     else:
         console.info("MIST SITE: %s | SWITCH: %s | PORT: %s | AP still connected to the switport. Waiting for another %s seconds..." %(level_name, switch_name, port_name, wait_time))
         time.sleep(wait_time)
-        return ap_still_connected(level, level_id, level_name, ap_mac, switch_name, port_name, False, console)
+        return ap_disconnected(level, level_id, level_name, ap_mac, switch_name, port_name, False, console)
 

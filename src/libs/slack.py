@@ -23,7 +23,11 @@ class Slack:
             "red": "danger"
 
         } 
+        self._do_not_send = False
         
+    def do_not_send(self):
+        self._do_not_send = True
+
     def _clear_data(self):
         self.title = ""
         self.messages = [] 
@@ -89,7 +93,7 @@ class Slack:
 
 
     def send_message(self):
-        if self.enabled and len(self.messages) > 0:
+        if self.enabled and len(self.messages) > 0 and self._do_not_send == False:
             now = datetime.now()
             now.strftime("%d/%m/%Y %H:%M:%S")
             part_message = self.messages[0].replace("*NOTICE*: ", "").split("|")
