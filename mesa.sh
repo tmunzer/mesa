@@ -3,47 +3,12 @@
 # =========================================================
 # =========================================================
 #
-#            APP CONTAINER CREATION
-#            SPECIFIC TO EACH APP
-#            !!! DO NOT CHANGE !!!
-#
-# =========================================================
-# =========================================================
-
-function create_app_container
-{
-  if [ `$DOCKER ps -a | grep $APP_NAME | wc -l` -eq 0 ]
-  then
-    echo -e "${INFOC}INFO${NC}: $APP_NAME container not present. Creating it..."
-    $DOCKER create \
-    --security-opt label:disable \
-    -v $PERSISTANT_FOLDER/$APP_NAME/config.py:/app/config.py:ro \
-    --link "$DB_NAME:mist-mongo" \
-    --name="$APP_NAME" \
-    --restart="on-failure:5" \
-    --memory=128m \
-    -e "VIRTUAL_HOST=$NODEJS_VHOST" \
-    $APP_IMG
-    if [ $? -eq 0 ]
-    then
-      echo -e "${INFOC}INFO${NC}: $APP_NAME container is now created."
-    else
-      echo -e "${ERRORC}ERROR${NC}: $APP_NAME container can't be created."
-    fi
-  else
-    echo -e "${INFOC}INFO${NC}: $APP_NAME image is already created."
-  fi
-}
-
-# =========================================================
-# =========================================================
-#
 #            SYSTEM PARAMETERS
 #            DO NOT CHANGE!!!
 #
 # =========================================================
 # =========================================================
-SCRIPT_CONF=`pwd`"/mesa.conf"
+SCRIPT_CONF=`pwd`"/mist-doker.conf"
 SCRIPT_NAME="mesa.py"
 
 APP_NAME="mesa"
@@ -57,7 +22,6 @@ NGINX_CERTS_FOLDER="certs"
 NGINX_NAME="mist-proxy"
 NGINX_IMG="jwilder/nginx-proxy"
 
-
 # =========================================================
 # mongoDB server configuration
 # true if email server is needed by the App
@@ -67,7 +31,7 @@ DB_NAME="mist-mongo"
 DB_IMG="mongo"
 
 DOCKER=""
-
+DOCKER_COMP=""
 # =========================================================
 # Colors
 INFOC='\033[0;32m'
@@ -142,8 +106,6 @@ function script_conf
   echo "" >> $SCRIPT_CONF
   echo "PERSISTANT_FOLDER=$PERSISTANT_FOLDER" >> $SCRIPT_CONF
   echo "" >> $SCRIPT_CONF
-
-
 }
 
 function update_vhost
@@ -151,12 +113,13 @@ function update_vhost
   echo "To use the NGINX reverse proxy, we will need a dedicated DNS entry for the application."
   echo "Web browsers will access the application interface from this FQDN."
   response=""
-  while ! echo $response | grep -i "y" > /dev/null
+  while ! echo "x$response" | grep -i "xy" > /dev/null
   do
-    read -p "Application DNS name: " NODEJS_VHOST
+    read -p "Application DNS name: " APP_VHOST
     read -p "Are you sure (y/n)? " response
+    echo ""
   done
-  echo "$APP_NAME-NODEJS_VHOST=$NODEJS_VHOST" >> $SCRIPT_CONF
+  echo "$APP_NAME-APP_VHOST=$APP_VHOST" >> $SCRIPT_CONF
   echo "" >> $SCRIPT_CONF
 }
 
@@ -189,9 +152,9 @@ function init_script_conf
       then
         PERSISTANT_FOLDER=`echo "$line" | cut -d"=" -f2`
       fi
-      if echo $line | grep "$APP_NAME-NODEJS_VHOST" > /dev/null
+      if echo $line | grep "$APP_NAME-APP_VHOST" > /dev/null
       then
-        NODEJS_VHOST=`echo "$line" | cut -d"=" -f2`
+        APP_VHOST=`echo "$line" | cut -d"=" -f2`
       fi
     done < $SCRIPT_CONF
   fi
@@ -204,7 +167,7 @@ function init_script_conf
     echo -e "${ERRORC}ERROR${NC}: not able to load Script configuration. Exiting..."
     exit 254
   fi
-  if [ ! "$NODEJS_VHOST" ]
+  if [ ! "$APP_VHOST" ]
   then
     update_vhost    
   fi
@@ -234,10 +197,10 @@ function menu_script
     echo "b) Back"
     echo "Please make a choice"
     read response
-    case $response in
-      "1") script_conf;;
-      "2") read_script_conf;;
-      "b") menu_main;;
+    case "x$response" in
+      "x1") script_conf;;
+      "x2") read_script_conf;;
+      "xb") menu_main;;
     esac
   done
 }
@@ -271,42 +234,42 @@ function check_folder # $name $FOLDER_NAME
 
 function check_certificates
 {
-    if [ `ls $NGINX_CERTS_FOLDER | grep $NODEJS_VHOST.key | wc -l` -eq 0 ] || [ `ls $NGINX_CERTS_FOLDER | grep $NODEJS_VHOST.crt | wc -l` -eq 0 ]
+    if [ `ls $NGINX_CERTS_FOLDER | grep $APP_VHOST.key | wc -l` -eq 0 ] || [ `ls $NGINX_CERTS_FOLDER | grep $APP_VHOST.crt | wc -l` -eq 0 ]
     then
-        echo -e "${INFOC}INFO${NC}: Certificates for $NODEJS_VHOST doesn't exist."
+        echo -e "${INFOC}INFO${NC}: Certificates for $APP_VHOST doesn't exist."
         echo "     Creating a self-signed certificate..."
-        openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$NODEJS_VHOST.key -out $NGINX_CERTS_FOLDER/$NODEJS_VHOST.crt
-        echo -e "${INFOC}INFO${NC}: Certificate for $NODEJS_VHOST created."
+        openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key -out $NGINX_CERTS_FOLDER/$APP_VHOST.crt
+        echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST created."
     else
-        echo -e "${INFOC}INFO${NC}: Certificate for $NODEJS_VHOST already exists."
+        echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST already exists."
     fi
 }
 
 function new_certificate
 {
-    if [ -f "$NGINX_CERTS_FOLDER/$NODEJS_VHOST.crt" ]
+    if [ -f "$NGINX_CERTS_FOLDER/$APP_VHOST.crt" ]
     then
-      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$NODEJS_VHOST.crt"
-      rm $NGINX_CERTS_FOLDER/$NODEJS_VHOST.crt
+      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$APP_VHOST.crt"
+      rm $NGINX_CERTS_FOLDER/$APP_VHOST.crt
     fi
-    if [ -f "$NGINX_CERTS_FOLDER/$NODEJS_VHOST.key" ]
+    if [ -f "$NGINX_CERTS_FOLDER/$APP_VHOST.key" ]
     then
-      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$NODEJS_VHOST.key"
-      rm $NGINX_CERTS_FOLDER/$NODEJS_VHOST.key
+      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$APP_VHOST.key"
+      rm $NGINX_CERTS_FOLDER/$APP_VHOST.key
     fi
-    openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$NODEJS_VHOST.key -out $NGINX_CERTS_FOLDER/$NODEJS_VHOST.crt
-    echo -e "${INFOC}INFO${NC}: Certificate for $NODEJS_VHOST created."
+    openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key -out $NGINX_CERTS_FOLDER/$APP_VHOST.crt
+    echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST created."
   
 }
 
 function new_csr
 {
-  openssl req -out $NGINX_CERTS_FOLDER/$NODEJS_VHOST.csr -new -newkey rsa:2048 -nodes -keyout $NGINX_CERTS_FOLDER/$NODEJS_VHOST.key
-  echo -e "${INFOC}INFO${NC}: new CSR generated. The CSR $NODEJS_VHOST.csr can be found in the folder $NGINX_CERTS_FOLDER"
+  openssl req -out $NGINX_CERTS_FOLDER/$APP_VHOST.csr -new -newkey rsa:2048 -nodes -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key
+  echo -e "${INFOC}INFO${NC}: new CSR generated. The CSR $APP_VHOST.csr can be found in the folder $NGINX_CERTS_FOLDER"
   echo -e "${WARNINGC}WARNING${NC}: To be able to use the application, you will have to sign the CSR with"
   echo "         your Certificate Authority."
   echo "         The signed certificate has to be place into the folder"
-  echo "         $NGINX_CERTS_FOLDER with the name $NODEJS_VHOST.crt"
+  echo "         $NGINX_CERTS_FOLDER with the name $APP_VHOST.crt"
 }
 
 function help_certificate
@@ -317,19 +280,19 @@ function help_certificate
   echo "      $NGINX_CERTS_FOLDER"
   echo "      The certificate has to be a X509 certificate in PEM format."
   echo "      At the end, you should have:"
-  echo "      $NGINX_CERTS_FOLDER/$NODEJS_VHOST.crt"
-  echo "      $NGINX_CERTS_FOLDER/$NODEJS_VHOST.key"
+  echo "      $NGINX_CERTS_FOLDER/$APP_VHOST.crt"
+  echo "      $NGINX_CERTS_FOLDER/$APP_VHOST.key"
 }
 
 function read_certificate
 {
-  openssl x509 -in $NGINX_CERTS_FOLDER/$NODEJS_VHOST.crt -noout -text
+  openssl x509 -in $NGINX_CERTS_FOLDER/$APP_VHOST.crt -noout -text
 }
 
 function menu_certificates
 {
   response=""
-  while ! echo $response | grep -i "[b]" > /dev/null
+  while ! echo "x$response" | grep -i "xb" > /dev/null
   do
     echo ""
     echo "1) Generate new self-signed certificate"
@@ -340,172 +303,73 @@ function menu_certificates
     echo "Please make a choice"
     read response
     case $response in
-      "1") new_certificate;;
-      "2") new_csr;;
-      "3") help_certificate;;
-      "4") read_certificate;;
-      "b") menu_main;;
+      "x1") new_certificate;;
+      "x2") new_csr;;
+      "x3") help_certificate;;
+      "x4") read_certificate;;
+      "xb") menu_main;;
     esac
   done
 }
 
+
 ################################################################################
-############################    CREATE DOCKER IMAGES
+############################    FILE GENERATORS
 ################################################################################
-function pull_image # $Xx_IMG
+
+function generate_docker_compose_file # $XX_NAME
 {
+  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml ]
+  then 
+    echo -e "${WARNINGC}WARNING${NC}:This script will automatically generate a docker-compose"
+    echo -e "         file to download docker images and manage containers. "
     echo ""
-    if [ `$DOCKER images | cut -d" " -f1 | grep $1$ | wc -l` -eq 0 ]
-    then
-	echo -e "${INFOC}INFO${NC}: $1 image is not present. Installing it..."
-	$DOCKER pull $1
-	if [ $? -eq 0 ]
-	then
-	    echo -e "${INFOC}INFO${NC}: $1 image is now installed."
-	else
-	    echo -e "${ERRORC}ERROR${NC}: $1 image can't be installed."
-	fi
-    else
-	echo -e "${INFOC}INFO${NC}: $1 image is already installed."
-    fi
-}
-
-function check_image #$XX_IMG
-{
-  echo ""
-  if [ `$DOCKER images | grep "$1" | wc -l` -eq 0 ]
-  then
-    echo -e "${WARNINGC}WARNING${NC}: Docker Image $1 is not installed."
-    echo "         Please deploy all the needed images to run the Application"
-    echo "         in a Docker environment."
-  else
-    echo -e "${INFOC}INFO${NC}: Docker Image $1 is installed"
-  fi
-}
-
-
-function deploy_images
-{
-  if [ "$DB_IMG" ]
-  then
-    pull_image $DB_IMG
-  fi
-  pull_image $NGINX_IMG
-  pull_image $APP_IMG
-}
-
-function remove_images
-{
-  if [ "$DB_IMG"]
-  then
-    $DOCKER rmi $DB_IMG
-  fi
-  $DOCKER rmi $NGINX_IMG
-  $DOCKER rmi $APP_IMG
-}
-
-function check_images
-{  
-  if [ "$DB_IMG"]
-  then
-    check_image $DB_IMG
-  fi
-  check_image $NGINX_IMG
-  check_image $APP_IMG
-}
-
-function menu_images
-{
-  response="0"
-  while ! echo $response | grep -i "[b]" > /dev/null
-  do
+    echo -e "         File location: $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml"
     echo ""
-    echo "1) Deploy Docker Images"
-    echo "2) Remove Application Image"
-    echo "3) Remove Application and Dependencies Images"
-    echo "4) Check Docker Images"
-    echo "b) Back"
-    echo "Please make a choice"
-    read response
-    case $response in
-      "1") deploy_images;;
-      "2") $DOCKER rmi $APP_IMG;;
-      "3") remove_images;;
-      "4") check_images;;
-    esac
-  done
-  response=""
-}
-################################################################################
-############################    CREATE DOCKER CONTAINERS
-################################################################################
-function create_mongo_container
-{
-  if [ `$DOCKER ps -a | grep $DB_NAME | wc -l` -eq 0 ]
-  then
-    echo "INFO: $DB_NAME container not present. Creating it..."
-    $DOCKER create \
-    --name $DB_NAME \
-    -v $DB_FOLDER:/data/db \
-    $DB_IMG
-    if [ $? -eq 0 ]
-    then
-      echo "INFO: $DB_NAME container is now created."
-    else
-      echo "ERROR: $DB_NAME container can't be created."
-    fi
-  else
-    echo "INFO: $DB_NAME container is already created."
+    touch $PERSISTANT_FOLDER/$APP_NAME/config.py    
+    cat <<EOF > $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml
+version: '3'
+services:    
+    nginx:
+        image: "jwilder/nginx-proxy"
+        ports:
+            - 443:443
+        volumes:
+            - $PERSISTANT_FOLDER/$NGINX_CERTS_FOLDER:/etc/nginx/certs:ro  
+            - /var/run/docker.sock:/tmp/docker.sock:ro        
+            - /etc/nginx/vhost.d
+        restart: always
+
+    mongodb:
+        image: "mongo"
+        restart: always
+        volumes: 
+            - $PERSISTANT_FOLDER/$DB_FOLDER:/data/db
+
+    $APP_NAME: 
+        image: $APP_IMG
+        depends_on: 
+            - nginx
+            - mongodb
+        environment:
+            - VIRTUAL_HOST=$APP_VHOST
+        volumes:
+            - $PERSISTANT_FOLDER/$APP_NAME/config.py:/app/config.py:ro         
+        links:
+            - mongodb:mist-mongo
+EOF
   fi
 }
 
-function create_nginx_container
+function generate_conf_file # $XX_NAME
 {
-    echo ""
-    if [ `$DOCKER ps -a | grep $NGINX_NAME | wc -l` -eq 0 ]
-    then
-	echo -e "${INFOC}INFO${NC}: $NGINX_NAME container not present. Creating it..."
-	$DOCKER create \
-	    -p 80:80 \
-	    -p 443:443 \
-	    --security-opt label:disable \
-	    -v $NGINX_CERTS_FOLDER:/etc/nginx/certs:ro \
-	    -v /etc/nginx/vhost.d \
-	    -v /usr/share/nginx/html \
-	    -v /var/run/docker.sock:/tmp/docker.sock:ro \
-	    --name=$NGINX_NAME \
-	    --restart="on-failure:5" \
-	    $NGINX_IMG
-	if [ $? -eq 0 ]
-	then
-	    echo -e "${INFOC}INFO${NC}: $NGINX_NAME container is now created."
-	else
-	    echo -e "${ERRORC}ERROR${NC}: $NGINX_NAME container can't be created."
-	fi
-    else
-	echo -e "${INFOC}INFO${NC}: $NGINX_NAME container is already created."
-    fi
-}
-
-function check_container # $XX_NAME
-{
-  if [ `$DOCKER ps | grep -c "$1"` -gt 0 ]
-  then
-    echo "$1: INSTALLED and RUNNING"
-  elif [ `$DOCKER ps -a | grep -c "$1"` -gt 0 ]
-  then
-    echo "$1: INSTALLED and STOPPED"
-  else
-    echo "$1: NOT INSTALLED"
-  fi
-}
-function start_container # $XX_NAME
-{
-  echo ""
   if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/config.py ]
   then 
-    echo -e "${WARNINGC}WARNING${NC}:The script is creating the file $PERSISTANT_FOLDER/$APP_NAME/config.py"
+    echo -e "${WARNINGC}WARNING${NC}:This script will automatically generate a default configuration"
     echo -e "         but you'll have to configure it before starting the app."
+    echo ""
+    echo -e "         File location: $PERSISTANT_FOLDER/$APP_NAME/config.py"
+    echo ""
     touch $PERSISTANT_FOLDER/$APP_NAME/config.py
     cat <<\EOF > $PERSISTANT_FOLDER/$APP_NAME/config.py
 
@@ -676,33 +540,53 @@ cso_method= {
     }
 
 EOF
-    return 1
-  else 
-    if [ `$DOCKER ps -a | grep $1 | wc -l` -eq 0 ]
-    then
-      echo -e "${ERRORC}ERROR${NC}: $1 container is not created. Please create it before."
-      retval=1
-    elif [ `$DOCKER ps | grep $1 | wc -l` -eq 0 ]
-    then
-      echo -e "${INFOC}INFO${NC}: $1 container is not started. starting it..."
-      CID=`$DOCKER ps -a | grep $1 | cut -d" " -f1`
-      $DOCKER start $CID
-      retval=$?
-      if [ $retval -eq 0 ]
-      then
-        echo -e "${INFOC}INFO${NC}: $1 container is now started."
-        retval=0
-      else
-        echo -e "${ERRORC}ERROR${NC}: $1 container can't be started."
-        retval=1
-      fi
-    else
-      echo -e "${INFOC}INFO${NC}: $1 container is alreay running."
-      retval=0
-    fi
-    return $retval
+     echo -e "${ERRORC}IMPORTANT${NC}: If you didn't customized your configuration file yet, please do it now,"
+    echo "before stating the app containers!"
+    echo ""
+    response="xx"
+    while ! echo "x$response" | grep "xy" > /dev/null
+    do
+      echo "Do you want to want start the App now [y/N]? " 
+      read response
+      case "x$response" in
+        "xy") break;;
+        "xn") exit 0;;
+      esac
+    done
   fi
 }
+
+
+################################################################################
+############################    FILES VALIDATORS
+################################################################################
+
+function check_docker_compose_file
+{
+  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml ]
+  then
+    echo -e "${ERRORC}ERROR${NC}: Unable to find the docker-compose file for $APP_NAME."
+    generate_docker_compose_file
+  else
+    echo -e "${INFOC}INFO${NC}: docker-compose file found in $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml"
+  fi
+}
+
+function check_configuration_file
+{
+  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/config.py ]
+  then
+    echo -e "${ERRORC}ERROR${NC}: Unable to find the configuration file for $APP_NAME."
+    generate_conf_file
+  else
+    echo -e "${INFOC}INFO${NC}: configuration file found in $PERSISTANT_FOLDER/$APP_NAME/config.py"
+  fi
+}
+
+
+################################################################################
+############################    START
+################################################################################
 
 function result_banner
 {
@@ -714,31 +598,36 @@ function result_banner
   echo ""
   echo -e "${INFOC}INFO${NC}: NGINX SSL/TLS certifcates are in $NGINX_CERTS_FOLDER"
   echo ""
-echo -e "${INFOC}INFO${NC}: MongoDB files are in $DB_FOLDER"
+  echo -e "${INFOC}INFO${NC}: MongoDB files are in $DB_FOLDER"
   echo ""
   echo ""
   echo -e "${INFOC}INFO${NC}: $APP_NAME interface should now be avaible soon"
-  echo "      https://$NODEJS_VHOST"
+  echo "      https://$APP_VHOST"
   echo ""
   echo "============================================================================"
   echo "============================================================================"
 }
 
+function start_containers # CONT NAME
+{
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start $1
+  retvalAPP=$?
+  if [ $retvalAPP -eq 0 ] 
+  then
+    echo ""
+    echo -e "${INFOC}INFO${NC}: Container $1 is now started..."
+  else
+    echo ""
+    echo -e "${WARNINGC}WARNING${NC}: Unable to start the container $1..."
+  fi
+  echo ""
+}
+
 function start_containers
 {
-
-  if [ "$DB_NAME" ]
-  then
-    start_container $DB_NAME
-    retvalDB=$?
-  else
-    retvalDB=0
-  fi
-  start_container $NGINX_NAME
-  retvalNGINX=$?
-  start_container $APP_NAME
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start
   retvalAPP=$?
-  if  [ $retvalDB -eq 0 ] && [ $retvalNGINX -eq 0 ] && [ $retvalAPP -eq 0 ] 
+  if [ $retvalAPP -eq 0 ] 
   then
     result_banner
   else
@@ -750,136 +639,43 @@ function start_containers
   echo ""
 }
 
-
-function create_containers
+function stop_container # CONT NAME
 {
-  if [ "$DB_NAME" ]
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop $1
+  retvalAPP=$?
+  if [ $retvalAPP -eq 0 ] 
   then
-    create_mongo_container
-  fi
-  create_nginx_container
-  create_app_container $APP_NAME $VHOST
-}
-
-function remove_force_container
-{
-  $DOCKER rm -f $1 > /dev/null
-  if [ $? -eq 0 ]
-  then
-    echo -e "${INFOC}INFO${NC}: $APP_NAME container is now removed."
-  else
-    echo -e "${ERRORC}ERROR${NC}: $APP_NAME container can't be removed."
-  fi
-}
-
-function remove_container
-{
-  if [ `$DOCKER ps | grep $1 | wc -l` -gt 0 ]
-  then
-    echo -e "${INFOC}INFO${NC}: Container $1 is still running. Are you sure you want to remove it?"
-    response=""
-    while ! echo "$response" | grep -i "[yn]" > /dev/null
-    do
-      read -p "Force the removal (y/n)? " response
-      case $response in
-        "Y"|"y") remove_force_container $1;;
-      esac
-    done
-  elif [ `$DOCKER ps -a | grep $1 | wc -l` -gt 0 ]
-  then
-    $DOCKER rm $1 > /dev/null
-    if [ $? -eq 0 ]
-    then
-      echo -e "${INFOC}INFO${NC}: $1 container is now removed."
-    else
-      echo -e "${ERRORC}ERROR${NC}: $1 container can't be removed."
-
-    fi
-  else
-    echo -e "${INFOC}INFO${NC}: Container $1 is not present. No need to remove it..."
-  fi
-}
-
-function remove_containers
-{
-  remove_container $NGINX_NAME
-  remove_container $APP_NAME
-}
-
-function stop_container # $XX_NAME
-{
-  if [ `$DOCKER ps | grep $1 | wc -l` -gt 0 ]
-  then
-    echo -e "${INFOC}INFO${NC}: $1 container is running. stopping it..."
     echo ""
-    $DOCKER stop $1
-    retval=$?
-    if [ $retval -eq 0 ]
-    then
-      echo -e "${INFOC}INFO${NC}: $1 container is now stopped."
-      retval=0
-    else
-      echo ""
-      echo -e "${ERRORC}ERROR${NC}: $1 container can't be stopped."
-      retval=1
-    fi
+    echo -e "${INFOC}INFO${NC}: Container $1 is now stopped..."
   else
-    echo -e "${INFOC}INFO${NC}: $1 container was not started."
-    retval=0
+    echo ""
+    echo -e "${WARNINGC}WARNING${NC}: Unable to stop the container $1..."
   fi
-  return $retval
+  echo ""
 }
+
 function stop_containers
 {
-  stop_container $NGINX_NAME
-  stop_container $APP_NAME
-}
-function check_containers
-{
-  check_container $NGINX_NAME
-  check_container $APP_NAME
-}
-function menu_containers
-{
-  response="0"
-  while ! echo $response | grep -i "[b]" > /dev/null
-  do
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop
+  retvalAPP=$?
+  if [ $retvalAPP -eq 0 ] 
+  then
     echo ""
-    echo "1) Create Docker Containers"
-    echo "2) Remove Application Container"
-    echo "3) Remove Application and Dependencies Containers"
-    echo "4) Check Docker Containers"
-    echo "5) Start Docker Containers"
-    echo "6) Stop Application Containers"
-    echo "7) Stop Application and Dependencies Containers"
-    echo "8) Restart Application Container"
-    echo "9) Restart Application and Dependencies Containers"
-    echo "b) Back"
-    echo "Please make a choice"
-    read response
-    case $response in
-      "1") create_containers;;
-      "2") remove_container $APP_NAME;;
-      "3") remove_containers;;
-      "4") check_containers;;
-      "5") start_containers;;
-      "6") stop_container $APP_NAME;;
-      "7") stop_containers;;
-      "8") stop_container $APP_NAME; start_container $APP_NAME;;
-      "9") stop_containers; start_containers;;
-    esac
-  done
+    echo -e "${INFOC}INFO${NC}: All the containers for this app are now stopped..."
+  else
+    echo ""
+    echo -e "${WARNINGC}WARNING${NC}: Unable to stop some of the containers..."
+  fi
+  echo ""
 }
-
-
 ################################################################################
 ############################    DEPLOY
 ################################################################################
 function auto_deploy
 {
-  deploy_images
-  create_containers
-  start_containers
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml build
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml up --no-start
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start
 }
 
 function deploy
@@ -888,8 +684,8 @@ function deploy
   echo "--=== DEPLOY INIT ===--"
   echo ""
   echo ""
-  echo "This script will automatically"
-  echo "  - Download Docker Images (NGINX, App)"
+  echo "This script is using docker-compose to automatically"
+  echo "  - Download Docker Images (NGINX, MONGODB, APP)"
   echo "  - Create Docker Containers based on the configuration you gave"
   echo "  - Start Docker Containers"
   echo ""
@@ -909,12 +705,8 @@ function deploy
 ################################################################################
 function update_app
 {
-  stop_container $APP_NAME
-  remove_container $APP_NAME
-  $DOCKER rmi $APP_IMG
-  pull_image $APP_IMG
-  create_app_container
-  start_container $APP_NAME
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml pull
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml restart
 }
 
 
@@ -935,14 +727,29 @@ function check_docker
   fi
 }
 
+function check_docker_compose
+{
+  DOCKER_COMP=`which docker-compose`
+  if ! echo "$DOCKER_COMP" | grep -i "docker-compose" > /dev/null
+  then
+    echo -e "${ERRORC}ERROR${NC}: Unable to find docker-compose path."
+    echo "       Plese install docker docker-compose: https://www.docker.com/products/overview"
+    echo "Exiting..."
+    exit 255
+  else
+    echo -e "${INFOC}INFO${NC}: docker-compose found at $DOCKER_COMP"
+  fi
+}
+
 function init_script
 {
   banner "$APP_NAME Management Script"
 
   check_docker
+  check_docker_compose
 
   init_script_conf
-  
+
   check_folder "Database" $DB_FOLDER
   check_folder "Certificates" $NGINX_CERTS_FOLDER
   check_folder "App" "$PERSISTANT_FOLDER/$APP_NAME"
@@ -950,53 +757,38 @@ function init_script
 
   check_certificates
 
+  check_configuration_file
+  check_docker_compose_file
+
   echo -e "${INFOC}INFO${NC}: Script init done."
   echo "||============================================================================="
-}
-
-function menu_app
-{
-  response="0"
-  while ! echo $response | grep -i "[b]" > /dev/null
-  do
-    echo ""
-    echo "1) Manage Docker Images"
-    echo "2) Manage Docker Containers"
-    echo "3) View Application Status"
-    echo "b) Back"
-    echo "Please make a choice"
-    read response
-    case $response in
-      "1") menu_images;;
-      "2") menu_containers;;
-      "3") check_containers;;
-    esac
-  done
+  echo ""
+ 
 }
 
 function menu_main
 {
   response="0"
-  while ! echo $response | grep -i "[x]" > /dev/null
+  while ! echo "x$response" | grep -i "xx" > /dev/null
   do
     echo ""
     echo "1) Deploy and Start Application"
     echo "2) Start Application Containers"
-    echo "3) Update Application"
-    echo "4) Manage Application"
+    echo "3) Stop Application Containers"
+    echo "4) Update Application"
     echo "5) HTTPS certificates"
     echo "6) Script parameters"
     echo "x) Exit"
     echo "Please make a choice"
     read response
-    case $response in
-      "1") deploy;;
-      "2") start_containers;;
-      "3") update_app;;
-      "4") menu_app;;
-      "5") menu_certificates;;
-      "6") menu_script;;      
-      "x") exit 0;;
+    case "x$response" in
+      "x1") deploy;;
+      "x2") start_containers;;
+      "x3") stop_containers;;
+      "x4") update_app;;
+      "x5") menu_certificates;;
+      "x6") menu_script;;      
+      "xx") exit 0;;
     esac
   done
 }

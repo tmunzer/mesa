@@ -1,0 +1,29 @@
+version: '3'
+services:    
+    nginx:
+        image: "jwilder/nginx-proxy"
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - <your_folder>/docker/nginx:/etc/nginx/certs:ro         
+            - /var/run/docker.sock:/tmp/docker.sock:ro 
+            - /etc/nginx/vhost.d
+        restart: always
+
+    mongodb:
+        image: "mongo"
+        restart: always
+        volumes: 
+            - <your_folder>/docker/mongo:/data/db
+    mesa: 
+        image: "tmunzer/mesa"
+        depends_on: 
+            - nginx
+            - mongodb
+        environment:
+            - VIRTUAL_HOST=<your_app_hostname>
+        volumes:
+            - <your_folder>/docker/mesa/config.py:/app/config.py:ro         
+        links:
+            - mongodb:mist-mongo
