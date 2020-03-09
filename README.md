@@ -54,7 +54,7 @@ The Automation script will allow you to easily
 * Create the application permanent folder and generate a config file
 * Manage HTTPS certificates with self-signed certificates 
 * Download, Deploy, Update the application container
-To use this script, just download it [here](mesa.sh), and run it in a terminal.
+To use this script, just download it [here](https://raw.githubusercontent.com/tmunzer/mesa/master/mesa.sh), and run it in a terminal.
 
 
 When you are starting the script for the first time, it will ask some question:
