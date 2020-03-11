@@ -53,267 +53,6 @@ function banner
 }
 
 ################################################################################
-############################    SCRIPT CONF
-################################################################################
-
-function script_conf
-{
-  # FOLDER PARAMETERS
-  echo "We will need a persistant folder to store application configuration, data and certificates."
-  echo "Where do you want to store these data? [$PERSISTANT_FOLDER]"
-  echo ""
-  response=""
-  while ! echo $response | grep -i "y" > /dev/null
-  do
-    read -p "PERSISTANT FOLDER: " PERSISTANT_FOLDER
-    if ! echo $PERSISTANT_FOLDER | grep ^"/" > /dev/null
-    then
-      echo -e "${WARNINGC}WARNING${NC}: Incorrect input"
-    else
-      read -p "Is \"$PERSISTANT_FOLDER\" correct (y/n)? " response
-    fi
-  done
-  while [ ! -d "$PERSISTANT_FOLDER" ]
-  do
-    echo "$PERSISTANT_FOLDER does not exist."
-    create=""
-    while ! echo $create | grep -i "[ny]" > /dev/null
-    do
-      read -p "Do you want to create it (y/n)? " create
-      case $create in
-        "y"|"Y") mkdir -p "$PERSISTANT_FOLDER/$APP_NAME";;
-        *) exit 0;;
-      esac
-    done
-  done
-  # VHOST PARAMETER
-  echo ""
-  echo ""
-
-  # SAVING PARAMETERS
-  if [ -f $SCRIPT_CONF ]
-  then
-    mv $SCRIPT_CONF $SCRIPT_CONF.bak
-  fi
-  touch $SCRIPT_CONF
-  while read line
-  do
-    if echo "$line" | grep "VHOST" > /dev/null
-    then
-      echo "$line" >> $SCRIPT_CONF
-    fi
-  done < $SCRIPT_CONF.bak
-  echo "" >> $SCRIPT_CONF
-  echo "PERSISTANT_FOLDER=$PERSISTANT_FOLDER" >> $SCRIPT_CONF
-  echo "" >> $SCRIPT_CONF
-}
-
-function update_vhost
-{
-  echo "To use the NGINX reverse proxy, we will need a dedicated DNS entry for the application."
-  echo "Web browsers will access the application interface from this FQDN."
-  response=""
-  while ! echo "x$response" | grep -i "xy" > /dev/null
-  do
-    read -p "Application DNS name: " APP_VHOST
-    read -p "Are you sure (y/n)? " response
-    echo ""
-  done
-  echo "$APP_NAME-APP_VHOST=$APP_VHOST" >> $SCRIPT_CONF
-  echo "" >> $SCRIPT_CONF
-}
-
-function init_script_conf
-{
-  if [ ! -f "$SCRIPT_CONF" ]
-  then
-    echo "-----=============-----"
-    echo "--=== SCRIPT INIT ===--"
-    echo ""
-    echo "Before starting, here are some questions..."
-    echo ""
-    script_conf
-    response=""
-    while ! echo $response | grep -i "[y]" > /dev/null
-    do
-      echo ""
-      echo "Current parameters:"
-      echo ""
-      cat $SCRIPT_CONF
-      read -p "Is the configuration correct (y/n)? " response
-      case $response in
-        "n"|"N") script_conf;;
-      esac
-    done
-  else
-    while read line
-    do
-      if echo $line | grep "PERSISTANT_FOLDER" > /dev/null
-      then
-        PERSISTANT_FOLDER=`echo "$line" | cut -d"=" -f2`
-      fi
-      if echo $line | grep "$APP_NAME-APP_VHOST" > /dev/null
-      then
-        APP_VHOST=`echo "$line" | cut -d"=" -f2`
-      fi
-    done < $SCRIPT_CONF
-  fi
-  if echo "$PERSISTANT_FOLDER" | grep -i [a-z] > /dev/null
-  then
-    DB_FOLDER="$PERSISTANT_FOLDER/$DB_FOLDER"
-    NGINX_CERTS_FOLDER="$PERSISTANT_FOLDER/$NGINX_CERTS_FOLDER"
-    echo -e "${INFOC}INFO${NC}: Script configuration loaded succesfully."
-  else
-    echo -e "${ERRORC}ERROR${NC}: not able to load Script configuration. Exiting..."
-    exit 254
-  fi
-  if [ ! "$APP_VHOST" ]
-  then
-    update_vhost    
-  fi
-}
-
-function read_script_conf
-{
-  if [ ! -f $SCRIPT_CONF ]
-  then
-    echo -e "${WARNINGC}WARNING${NC}: Script configuration file does not exists..."
-    script_conf
-  fi
-  echo ""
-  echo "Current parameters:"
-  echo ""
-  cat $SCRIPT_CONF
-}
-
-function menu_script
-{
-  response=""
-  while ! echo $response | grep -i "[b]" > /dev/null
-  do
-    echo ""
-    echo "1) Change Script parameters"
-    echo "2) View Script parameters"
-    echo "b) Back"
-    echo "Please make a choice"
-    read response
-    case "x$response" in
-      "x1") script_conf;;
-      "x2") read_script_conf;;
-      "xb") menu_main;;
-    esac
-  done
-}
-
-
-################################################################################
-############################    FOLDERS
-################################################################################
-
-function check_folder # $name $FOLDER_NAME
-{
-  if [ ! -d $2 ]
-  then
-    echo -e "${INFOC}INFO${NC}: $1 folder $2 doesn't exist. Creating it..."
-    mkdir -p $2
-    if [ $? -eq 0 ]
-    then
-      echo -e "${INFOC}INFO${NC}: $1 folder $2 created."
-    else
-      echo ""
-      echo -e "${ERRORC}ERROR${NC}: Unable to create $1 folder $2."
-    fi
-  else
-    echo -e "${INFOC}INFO${NC}: $1 folder already exists."
-  fi
-}
-
-################################################################################
-############################    CERTIFICATES
-################################################################################
-
-function check_certificates
-{
-    if [ `ls $NGINX_CERTS_FOLDER | grep $APP_VHOST.key | wc -l` -eq 0 ] || [ `ls $NGINX_CERTS_FOLDER | grep $APP_VHOST.crt | wc -l` -eq 0 ]
-    then
-        echo -e "${INFOC}INFO${NC}: Certificates for $APP_VHOST doesn't exist."
-        echo "     Creating a self-signed certificate..."
-        openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key -out $NGINX_CERTS_FOLDER/$APP_VHOST.crt
-        echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST created."
-    else
-        echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST already exists."
-    fi
-}
-
-function new_certificate
-{
-    if [ -f "$NGINX_CERTS_FOLDER/$APP_VHOST.crt" ]
-    then
-      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$APP_VHOST.crt"
-      rm $NGINX_CERTS_FOLDER/$APP_VHOST.crt
-    fi
-    if [ -f "$NGINX_CERTS_FOLDER/$APP_VHOST.key" ]
-    then
-      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$APP_VHOST.key"
-      rm $NGINX_CERTS_FOLDER/$APP_VHOST.key
-    fi
-    openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key -out $NGINX_CERTS_FOLDER/$APP_VHOST.crt
-    echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST created."
-  
-}
-
-function new_csr
-{
-  openssl req -out $NGINX_CERTS_FOLDER/$APP_VHOST.csr -new -newkey rsa:2048 -nodes -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key
-  echo -e "${INFOC}INFO${NC}: new CSR generated. The CSR $APP_VHOST.csr can be found in the folder $NGINX_CERTS_FOLDER"
-  echo -e "${WARNINGC}WARNING${NC}: To be able to use the application, you will have to sign the CSR with"
-  echo "         your Certificate Authority."
-  echo "         The signed certificate has to be place into the folder"
-  echo "         $NGINX_CERTS_FOLDER with the name $APP_VHOST.crt"
-}
-
-function help_certificate
-{
-  echo -e "${INFOC}INFO${NC}: You can replace the self-signed certicate with your own certicate."
-  echo "      To do so, you will have to generate a signed certificate on your own,"
-  echo "      and to place the certificate and its private key into the folder"
-  echo "      $NGINX_CERTS_FOLDER"
-  echo "      The certificate has to be a X509 certificate in PEM format."
-  echo "      At the end, you should have:"
-  echo "      $NGINX_CERTS_FOLDER/$APP_VHOST.crt"
-  echo "      $NGINX_CERTS_FOLDER/$APP_VHOST.key"
-}
-
-function read_certificate
-{
-  openssl x509 -in $NGINX_CERTS_FOLDER/$APP_VHOST.crt -noout -text
-}
-
-function menu_certificates
-{
-  response=""
-  while ! echo "x$response" | grep -i "xb" > /dev/null
-  do
-    echo ""
-    echo "1) Generate new self-signed certificate"
-    echo "2) Generate CSR"
-    echo "3) Help to use custom certificate"
-    echo "4) View current Certificate"
-    echo "b) Back"
-    echo "Please make a choice"
-    read response
-    case $response in
-      "x1") new_certificate;;
-      "x2") new_csr;;
-      "x3") help_certificate;;
-      "x4") read_certificate;;
-      "xb") menu_main;;
-    esac
-  done
-}
-
-
-################################################################################
 ############################    FILE GENERATORS
 ################################################################################
 
@@ -326,12 +65,12 @@ function generate_docker_compose_file # $XX_NAME
     echo ""
     echo -e "         File location: $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml"
     echo ""
-    touch $PERSISTANT_FOLDER/$APP_NAME/config.py    
     cat <<EOF > $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml
 version: '3'
 services:    
     nginx:
         image: "jwilder/nginx-proxy"
+        container_name: "mist-nginx"
         ports:
             - "443:443"
         volumes:
@@ -342,12 +81,14 @@ services:
 
     mongodb:
         image: "mongo"
+        container_name: "mist-mongodb"
         restart: always
         volumes: 
             - $PERSISTANT_FOLDER/$DB_FOLDER:/data/db
 
     $APP_NAME: 
         image: $APP_IMG
+        container_name: "mist-$APP_NAME"
         depends_on: 
             - nginx
             - mongodb
@@ -556,6 +297,268 @@ EOF
   fi
 }
 
+################################################################################
+############################    SCRIPT CONF
+################################################################################
+
+function script_conf
+{
+  # FOLDER PARAMETERS
+  echo "We will need a persistant folder to store application configuration, data and certificates."
+  echo "Where do you want to store these data? [$PERSISTANT_FOLDER]"
+  echo ""
+  response=""
+  while ! echo $response | grep -i "y" > /dev/null
+  do
+    read -p "PERSISTANT FOLDER: " PERSISTANT_FOLDER
+    if ! echo $PERSISTANT_FOLDER | grep ^"/" > /dev/null
+    then
+      echo -e "${WARNINGC}WARNING${NC}: Incorrect input"
+    else
+      read -p "Is \"$PERSISTANT_FOLDER\" correct (y/n)? " response
+    fi
+  done
+  while [ ! -d "$PERSISTANT_FOLDER" ]
+  do
+    echo "$PERSISTANT_FOLDER does not exist."
+    create=""
+    while ! echo $create | grep -i "[ny]" > /dev/null
+    do
+      read -p "Do you want to create it (y/n)? " create
+      case $create in
+        "y"|"Y") mkdir -p "$PERSISTANT_FOLDER/$APP_NAME";;
+        *) exit 0;;
+      esac
+    done
+  done
+  # VHOST PARAMETER
+  echo ""
+  echo ""
+
+  # SAVING PARAMETERS
+  if [ -f $SCRIPT_CONF ]
+  then
+    mv $SCRIPT_CONF $SCRIPT_CONF.bak
+  fi
+  touch $SCRIPT_CONF
+  while read line
+  do
+    if echo "$line" | grep "VHOST" > /dev/null
+    then
+      echo "$line" >> $SCRIPT_CONF
+    fi
+  done < $SCRIPT_CONF.bak
+  echo "" >> $SCRIPT_CONF
+  echo "PERSISTANT_FOLDER=$PERSISTANT_FOLDER" >> $SCRIPT_CONF
+  echo "" >> $SCRIPT_CONF
+}
+
+function update_vhost
+{
+  echo "To use the NGINX reverse proxy, we will need a dedicated DNS entry for the application."
+  echo "Web browsers will access the application interface from this FQDN."
+  response=""
+  while ! echo "x$response" | grep -i "xy" > /dev/null
+  do
+    read -p "Application DNS name: " APP_VHOST
+    read -p "Are you sure (y/n)? " response
+    echo ""
+  done
+  echo "$APP_NAME-APP_VHOST=$APP_VHOST" >> $SCRIPT_CONF
+  echo "" >> $SCRIPT_CONF
+}
+
+function init_script_conf
+{
+  if [ ! -f "$SCRIPT_CONF" ]
+  then
+    echo "-----=============-----"
+    echo "--=== SCRIPT INIT ===--"
+    echo ""
+    echo "Before starting, here are some questions..."
+    echo ""
+    script_conf
+    response=""
+    while ! echo $response | grep -i "[y]" > /dev/null
+    do
+      echo ""
+      echo "Current parameters:"
+      echo ""
+      cat $SCRIPT_CONF
+      read -p "Is the configuration correct (y/n)? " response
+      case $response in
+        "n"|"N") script_conf;;
+      esac
+    done
+  else
+    while read line
+    do
+      if echo $line | grep "PERSISTANT_FOLDER" > /dev/null
+      then
+        PERSISTANT_FOLDER=`echo "$line" | cut -d"=" -f2`
+      fi
+      if echo $line | grep "$APP_NAME-APP_VHOST" > /dev/null
+      then
+        APP_VHOST=`echo "$line" | cut -d"=" -f2`
+      fi
+    done < $SCRIPT_CONF
+  fi
+  if echo "$PERSISTANT_FOLDER" | grep -i [a-z] > /dev/null
+  then
+    DB_FOLDER="$PERSISTANT_FOLDER/$DB_FOLDER"
+    NGINX_CERTS_FOLDER="$PERSISTANT_FOLDER/$NGINX_CERTS_FOLDER"
+    DOCKER_COMPOSE_FOLDER="$PERSISTANT_FOLDER/container-enable"
+    echo -e "${INFOC}INFO${NC}: Script configuration loaded succesfully."
+  else
+    echo -e "${ERRORC}ERROR${NC}: not able to load Script configuration. Exiting..."
+    exit 254
+  fi
+  if [ ! "$APP_VHOST" ]
+  then
+    update_vhost    
+  fi
+}
+
+function read_script_conf
+{
+  if [ ! -f $SCRIPT_CONF ]
+  then
+    echo -e "${WARNINGC}WARNING${NC}: Script configuration file does not exists..."
+    script_conf
+  fi
+  echo ""
+  echo "Current parameters:"
+  echo ""
+  cat $SCRIPT_CONF
+}
+
+function menu_script
+{
+  response=""
+  while ! echo $response | grep -i "[b]" > /dev/null
+  do
+    echo ""
+    echo "1) Change Script parameters"
+    echo "2) View Script parameters"
+    echo "b) Back"
+    echo "Please make a choice"
+    read response
+    case "x$response" in
+      "x1") script_conf;;
+      "x2") read_script_conf;;
+      "xb") menu_main;;
+    esac
+  done
+}
+
+
+################################################################################
+############################    FOLDERS
+################################################################################
+
+function check_folder # $name $FOLDER_NAME
+{
+  if [ ! -d $2 ]
+  then
+    echo -e "${INFOC}INFO${NC}: $1 folder $2 doesn't exist. Creating it..."
+    mkdir -p $2
+    if [ $? -eq 0 ]
+    then
+      echo -e "${INFOC}INFO${NC}: $1 folder $2 created."
+    else
+      echo ""
+      echo -e "${ERRORC}ERROR${NC}: Unable to create $1 folder $2."
+    fi
+  else
+    echo -e "${INFOC}INFO${NC}: $1 folder already exists."
+  fi
+}
+
+################################################################################
+############################    CERTIFICATES
+################################################################################
+
+function check_certificates
+{
+    if [ `ls $NGINX_CERTS_FOLDER | grep $APP_VHOST.key | wc -l` -eq 0 ] || [ `ls $NGINX_CERTS_FOLDER | grep $APP_VHOST.crt | wc -l` -eq 0 ]
+    then
+        echo -e "${INFOC}INFO${NC}: Certificates for $APP_VHOST doesn't exist."
+        echo "     Creating a self-signed certificate..."
+        openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key -out $NGINX_CERTS_FOLDER/$APP_VHOST.crt
+        echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST created."
+    else
+        echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST already exists."
+    fi
+}
+
+function new_certificate
+{
+    if [ -f "$NGINX_CERTS_FOLDER/$APP_VHOST.crt" ]
+    then
+      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$APP_VHOST.crt"
+      rm $NGINX_CERTS_FOLDER/$APP_VHOST.crt
+    fi
+    if [ -f "$NGINX_CERTS_FOLDER/$APP_VHOST.key" ]
+    then
+      echo -e "${INFOC}INFO${NC}: removing $NGINX_CERTS_FOLDER/$APP_VHOST.key"
+      rm $NGINX_CERTS_FOLDER/$APP_VHOST.key
+    fi
+    openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key -out $NGINX_CERTS_FOLDER/$APP_VHOST.crt
+    echo -e "${INFOC}INFO${NC}: Certificate for $APP_VHOST created."
+  
+}
+
+function new_csr
+{
+  openssl req -out $NGINX_CERTS_FOLDER/$APP_VHOST.csr -new -newkey rsa:2048 -nodes -keyout $NGINX_CERTS_FOLDER/$APP_VHOST.key
+  echo -e "${INFOC}INFO${NC}: new CSR generated. The CSR $APP_VHOST.csr can be found in the folder $NGINX_CERTS_FOLDER"
+  echo -e "${WARNINGC}WARNING${NC}: To be able to use the application, you will have to sign the CSR with"
+  echo "         your Certificate Authority."
+  echo "         The signed certificate has to be place into the folder"
+  echo "         $NGINX_CERTS_FOLDER with the name $APP_VHOST.crt"
+}
+
+function help_certificate
+{
+  echo -e "${INFOC}INFO${NC}: You can replace the self-signed certicate with your own certicate."
+  echo "      To do so, you will have to generate a signed certificate on your own,"
+  echo "      and to place the certificate and its private key into the folder"
+  echo "      $NGINX_CERTS_FOLDER"
+  echo "      The certificate has to be a X509 certificate in PEM format."
+  echo "      At the end, you should have:"
+  echo "      $NGINX_CERTS_FOLDER/$APP_VHOST.crt"
+  echo "      $NGINX_CERTS_FOLDER/$APP_VHOST.key"
+}
+
+function read_certificate
+{
+  openssl x509 -in $NGINX_CERTS_FOLDER/$APP_VHOST.crt -noout -text
+}
+
+function menu_certificates
+{
+  response=""
+  while ! echo "x$response" | grep -i "xb" > /dev/null
+  do
+    echo ""
+    echo "1) Generate new self-signed certificate"
+    echo "2) Generate CSR"
+    echo "3) Help to use custom certificate"
+    echo "4) View current Certificate"
+    echo "b) Back"
+    echo "Please make a choice"
+    read response
+    case $response in
+      "x1") new_certificate;;
+      "x2") new_csr;;
+      "x3") help_certificate;;
+      "x4") read_certificate;;
+      "xb") menu_main;;
+    esac
+  done
+}
+
+
 
 ################################################################################
 ############################    FILES VALIDATORS
@@ -608,9 +611,33 @@ function result_banner
   echo "============================================================================"
 }
 
-function start_containers # CONT NAME
+function get_active_compose_files
 {
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start $1
+  compose_files=""
+  for i in `ls $DOCKER_COMPOSE_FOLDER`
+  do 
+    if echo "$i" | grep -q ".yaml"$
+    then 
+      compose_files="$compose_files -f $DOCKER_COMPOSE_FOLDER/$i"
+    fi
+  done
+  echo "$compose_files"
+}
+
+function enable_docker_compose
+{
+  ln -s $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
+}
+function disable_docker_compose
+{
+  rm $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
+}
+
+function start_container # CONT NAME
+{
+  enable_docker_compose
+  compose_files="$(get_active_compose_files)"
+  docker-compose $compose_files start $1
   retvalAPP=$?
   if [ $retvalAPP -eq 0 ] 
   then
@@ -625,7 +652,9 @@ function start_containers # CONT NAME
 
 function start_containers
 {
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start
+  enable_docker_compose
+  compose_files="$(get_active_compose_files)"
+  docker-compose $compose_files start
   retvalAPP=$?
   if [ $retvalAPP -eq 0 ] 
   then
@@ -639,9 +668,11 @@ function start_containers
   echo ""
 }
 
+
 function stop_container # CONT NAME
 {
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop $1
+  disable_docker_compose
+  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml stop $1
   retvalAPP=$?
   if [ $retvalAPP -eq 0 ] 
   then
@@ -656,12 +687,15 @@ function stop_container # CONT NAME
 
 function stop_containers
 {
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop
+  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml stop
   retvalAPP=$?
   if [ $retvalAPP -eq 0 ] 
   then
     echo ""
     echo -e "${INFOC}INFO${NC}: All the containers for this app are now stopped..."
+    disable_docker_compose
+    compose_files="$(get_active_compose_files)"
+    docker-compose $compose_files up -d
   else
     echo ""
     echo -e "${WARNINGC}WARNING${NC}: Unable to stop some of the containers..."
@@ -673,9 +707,8 @@ function stop_containers
 ################################################################################
 function auto_deploy
 {
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml build
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml up --no-start
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start
+  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml build
+  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml up -d
 }
 
 function deploy
@@ -705,9 +738,9 @@ function deploy
 ################################################################################
 function update_app
 {
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml pull
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start
+  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml pull
+  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml down
+  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml up -d
 }
 
 
@@ -751,10 +784,11 @@ function init_script
 
   init_script_conf
 
+  check_folder "container-enable" $COMPOSE_FOLDER
   check_folder "Database" $DB_FOLDER
   check_folder "Certificates" $NGINX_CERTS_FOLDER
   check_folder "App" "$PERSISTANT_FOLDER/$APP_NAME"
-  check_folder "bower_components" "$PERSISTANT_FOLDER/bower_components"
+  
 
   check_certificates
 
