@@ -160,7 +160,7 @@ class Mesa(Thread):
             else:
                 console.debug("Previous LLDP information: %s | %s" % (previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"]), self.thread_id)
                 console.debug("Current LLDP information : %s | %s" % (lldp_system_name, lldp_port_desc), self.thread_id)
-                if not(lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]):
+                if lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]:
                     self._route_request("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac, previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], True)
                     slack_title = console.slack.threads[self.thread_id]["messages"][0]
                     console.slack.send_message(self.thread_id)
