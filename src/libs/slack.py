@@ -26,7 +26,7 @@ class Slack:
         self.threads[thread_id]["do_not_send"] = True
 
     def _clear_data(self, thread_id):
-        del self.threads[thread_id]
+        self.threads[thread_id] = {"messages": [], "severity": 7, "title": "", "do_not_send":False}
 
     def set_title(self, title, thread_id):
         self.threads[thread_id]["title"] = title
