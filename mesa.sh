@@ -664,6 +664,8 @@ function start_containers
     echo -e "${WARNINGC}WARNING${NC}: Some containers are not started. The Application may not"
     echo "         be accesssible."
     echo "         Please fix the errors and retry."
+    echo ""
+    echo "         You can try to deploy the Application to (re)create the required containers."    
   fi
   echo ""
 }
