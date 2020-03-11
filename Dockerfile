@@ -15,5 +15,5 @@ RUN pip install -r requirements.txt
 COPY ./src/ .
 
 EXPOSE 51360
-CMD ["flask", "run"]
+CMD ["python","-u","mesa.py"]
 
