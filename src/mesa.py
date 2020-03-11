@@ -142,20 +142,19 @@ def _cso(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, 
             _cso("AP_CONNECTED", org_id, level, level_id, level_name,
                  ap_mac, lldp_system_name, lldp_port_desc, console, True)
 
-        else
-         console.debug("Previous LLDP information: %s | %s" % (
-              previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"]))
-          console.debug("Current LLDP information : %s | %s" %
-                         (lldp_system_name, lldp_port_desc))
-           if not(lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]):
+        else:
+            console.debug("Previous LLDP information: %s | %s" % (
+                previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"]))
+            console.debug("Current LLDP information : %s | %s" % (lldp_system_name, lldp_port_desc))
+            if not(lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]):
                 _cso("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac,
-                     previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], console, True)
+                    previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], console, True)
                 slack_title = console.slack.messages[1]
                 console.slack.send_message()
                 console.slack._clear_data()
                 console.slack.add_messages(slack_title, 6)
                 _cso("AP_CONNECTED", org_id, level, level_id, level_name,
-                     ap_mac, lldp_system_name, lldp_port_desc, console, True)
+                    ap_mac, lldp_system_name, lldp_port_desc, console, True)
             else:
                 console.slack.do_not_send()
                 console.info(
@@ -230,7 +229,6 @@ def ap_event(event, thread, active_threads):
 
 ###########################
 # ENTRY POINT
-
 
 global active_threads
 active_threads = 1
