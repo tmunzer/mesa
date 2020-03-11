@@ -333,9 +333,9 @@ services:
     nginx:
         image: "jwilder/nginx-proxy"
         ports:
-            - 443:443
+            - "443:443"
         volumes:
-            - $PERSISTANT_FOLDER/$NGINX_CERTS_FOLDER:/etc/nginx/certs:ro  
+            - $NGINX_CERTS_FOLDER:/etc/nginx/certs:ro  
             - /var/run/docker.sock:/tmp/docker.sock:ro        
             - /etc/nginx/vhost.d
         restart: always
@@ -706,7 +706,8 @@ function deploy
 function update_app
 {
   docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml pull
-  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml restart
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop
+  docker-compose --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start
 }
 
 
