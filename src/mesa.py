@@ -12,6 +12,7 @@ server_uri = mist_conf["server_uri"]
 
 from mongo import MesaDB
 mongo_host = "mist-mongo"
+mesa_db = MesaDB(server=mongo_host)
 #mongo_host = None
 
 
@@ -47,5 +48,4 @@ def postJsonHandler():
 
 
 if __name__ == '__main__':
-    mesa_db = MesaDB(server=mongo_host)
     app.run(debug=False, host='0.0.0.0', port=server_port)
