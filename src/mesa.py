@@ -136,28 +136,30 @@ def _cso(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, 
                 ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
     elif action == "AP_RESTARTED":
         previous_device_state = mesa_db.get_previous_lldp_info(ap_mac)
-        console.debug("Previous LLDP information: %s | %s" % (
-            previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"]))
-        console.debug("Current LLDP information : %s | %s" % (lldp_system_name, lldp_port_desc))
         if not previous_device_state:
             console.warning(
                 "AP %s restarted, but the previous value is not in the DB... Processing the message as a AP_CONNECTED message only..." % (ap_mac))
             _cso("AP_CONNECTED", org_id, level, level_id, level_name,
                  ap_mac, lldp_system_name, lldp_port_desc, console, True)
 
-        elif not(lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]):
-            _cso("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac,
-                 previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], console, True)
-            slack_title = console.slack.messages[1]
-            console.slack.send_message()
-            console.slack._clear_data()
-            console.slack.add_messages(slack_title, 6)
-            _cso("AP_CONNECTED", org_id, level, level_id, level_name,
-                 ap_mac, lldp_system_name, lldp_port_desc, console, True)
-        else:
-            console.slack.do_not_send()
-            console.info(
-                "AP %s restarted, but switchport didn't change... Discarding the message..." % (ap_mac))
+        else
+         console.debug("Previous LLDP information: %s | %s" % (
+              previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"]))
+          console.debug("Current LLDP information : %s | %s" %
+                         (lldp_system_name, lldp_port_desc))
+           if not(lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]):
+                _cso("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac,
+                     previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], console, True)
+                slack_title = console.slack.messages[1]
+                console.slack.send_message()
+                console.slack._clear_data()
+                console.slack.add_messages(slack_title, 6)
+                _cso("AP_CONNECTED", org_id, level, level_id, level_name,
+                     ap_mac, lldp_system_name, lldp_port_desc, console, True)
+            else:
+                console.slack.do_not_send()
+                console.info(
+                    "AP %s restarted, but switchport didn't change... Discarding the message..." % (ap_mac))
 
 
 def _ex(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console):
@@ -228,6 +230,7 @@ def ap_event(event, thread, active_threads):
 
 ###########################
 # ENTRY POINT
+
 
 global active_threads
 active_threads = 1
