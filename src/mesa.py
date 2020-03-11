@@ -164,12 +164,7 @@ def _initiate_conf_change(action, org_id, level, level_id, level_name, ap_mac, r
         if "lldp_system_name" in ap_info and "lldp_port_desc" in ap_info:
             lldp_system_name = ap_info["lldp_system_name"]
             lldp_port_desc = ap_info["lldp_port_desc"]
-            if configuration_method == "cso":
-                _cso(action, org_id, level, level_id, level_name,
-                     ap_mac, lldp_system_name, lldp_port_desc, console)
-            elif configuration_method == "ex":
-                _ex(action, org_id, level, level_id, level_name,
-                    ap_mac, lldp_system_name, lldp_port_desc, console)
+            _route_request(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console)            
         else:
             console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" % (
                 level_name, action, ap_mac))
