@@ -2,9 +2,9 @@ version: '3'
 services:    
     nginx:
         image: "jwilder/nginx-proxy"
+        container_name: "mist-nginx"
         ports:
-            - 80:80
-            - 443:443
+            - "443:443"
         volumes:
             - <your_folder>/docker/nginx:/etc/nginx/certs:ro         
             - /var/run/docker.sock:/tmp/docker.sock:ro 
@@ -13,11 +13,13 @@ services:
 
     mongodb:
         image: "mongo"
+        container_name: "mist-mongodb"
         restart: always
         volumes: 
             - <your_folder>/docker/mongo:/data/db
     mesa: 
         image: "tmunzer/mesa"
+        container_name: "mist-mesa"
         depends_on: 
             - nginx
             - mongodb
