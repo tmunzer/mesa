@@ -154,7 +154,6 @@ def _find_lan_segments_uuid(site_name, lan_segments, vlan_id=None, thread_id=Non
 
 # Configure swtich port
 
-
 def _set_switchport_config(site_name, switch_uuid, port_name, port_profile_uuid, lan_segment_uuids=[], native_vlan_uuid=None, switch_name="N/A", profile_name="N/A", lan_segments="N/A", native_lan="N/A", thread_id=None):
     url = "%s/tssm/apply-port-config-association" % url_prefix
     headers = {"x-auth-token": apitoken["token"]}
@@ -175,7 +174,7 @@ def _set_switchport_config(site_name, switch_uuid, port_name, port_profile_uuid,
     console.notice("""CSO SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to apply new configuration:
     Port profile name: %s
     Lan Segments: %s
-    Native VLAN: %s """ % (site_name, switch_name, port_name, profile_name, lan_segments, native_lan), thread_id)    
+    Native VLAN: %s """ %(site_name, switch_name, port_name, profile_name, lan_segments, native_lan), thread_id)    
 
     resp = req.post(url, headers, body)
     return resp["result"]
@@ -238,5 +237,5 @@ def ap_disconnected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=
             lan_segment_uuid = _find_lan_segments_uuid(site_name, lan_segments, port_profile_default["vlan_id"], thread_id)
             if len(lan_segment_uuid) == 1 :
                 _set_switchport_config(site_name, switch_uuid, lldp_port_desc, port_profile_uuid,
-                                    lan_segment_uuid, None, lldp_system_name, port_profile_default["port_profile_name"],port_profile_default["vlan_id"], thread_id)
+                                    lan_segment_uuid, None, lldp_system_name, port_profile_default["port_profile_name"],port_profile_default["vlan_id"], None, thread_id)
                 _deploy_switchport_config(site_name, switch_uuid, lldp_port_desc, lldp_system_name, thread_id)
