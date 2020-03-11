@@ -13,9 +13,7 @@ class Slack:
             self.configuration_method = configuration_method
         else: 
             self.enabled = False
-        self.title = ""
-        self.messages = [] 
-        self.severity = 7
+        self.threads = {}
         self.color ={
             "green": "#36a64f",
             "blue": "#2196f3",
@@ -23,29 +21,29 @@ class Slack:
             "red": "danger"
 
         } 
-        self._do_not_send = False
         
-    def do_not_send(self):
-        self._do_not_send = True
+    def do_not_send(self, thread_id):
+        self.threads[thread_id]["do_not_send"] = True
 
-    def _clear_data(self):
-        self.title = ""
-        self.messages = [] 
-        self.severity = 7
+    def _clear_data(self, thread_id):
+        del self.threads[thread_id]
 
-    def set_title(self, title):
-        self.title = title
-    def add_messages(self, message, severity):
-        self.messages.append(message) 
-        if severity < self.severity: 
-            self.severity = severity
+    def set_title(self, title, thread_id):
+        self.threads[thread_id]["title"] = title
 
-    def _get_color(self):
-        if self.severity >= 6:
+    def add_messages(self, message, severity, thread_id):
+        if not thread_id in self.threads:
+            self.threads[thread_id] = {"messages": [], "severity": 7, "title": "", "do_not_send":False}
+        self.threads[thread_id]["messages"].append(message) 
+        if severity < self.threads[thread_id]["severity"]: 
+            self.threads[thread_id]["severity"] = severity
+
+    def _get_color(self, severity):
+        if severity >= 6:
             return self.color["green"]
-        elif self.severity >= 5:
+        elif severity >= 5:
             return self.color["blue"]
-        elif self.severity >= 4:
+        elif severity >= 4:
             return self.color["orange"]
         else:
             return self.color["red"]
@@ -62,44 +60,45 @@ class Slack:
         else:
             return ["Unknown", "Unknown", "Unknown", message]
 
-    def _generate_message(self):
+    def _generate_message(self, messages):
         text = ""
         site = "Unknown"
         switch = "Unknown"
         port = "Unknown"
         info = "Unknown"
         color = "#aaaaaa"
-        index_messages = len(self.messages) - 1
-        if "ERROR" in self.messages[index_messages]:
-            message = self.messages[index_messages].replace("*ERROR*: ", "")
+        index_messages = len(messages) - 1
+        if "ERROR" in messages[index_messages]:
+            message = messages[index_messages].replace("*ERROR*: ", "")
             site, switch, port, info = self._split_message(message)
             text = "ERROR: %s > %s > %s configured through %s:\n %s" %(site, switch, port, self.configuration_method.upper(), info)  
             color = self.color["red"]          
-        if "WARNING" in self.messages[index_messages]:
-            message = self.messages[index_messages].replace("*WARNING*: ", "")
+        if "WARNING" in messages[index_messages]:
+            message = messages[index_messages].replace("*WARNING*: ", "")
             site, switch, port, info = self._split_message(message)
             text = "ABORTED: %s > %s > %s configured through %s:\n %s" %(site, switch, port, self.configuration_method.upper(), info)
             color = self.color["orange"]
-        elif "NOTICE" in self.messages[index_messages]:
-            message = self.messages[index_messages].replace("*NOTICE*: ", "")
+        elif "NOTICE" in messages[index_messages]:
+            message = messages[index_messages].replace("*NOTICE*: ", "")
             site, switch, port, info = self._split_message(message)
-            configuration = self.messages[index_messages-1].split("\n")[1:]
+            configuration = messages[index_messages-1].split("\n")[1:]
             configuration = ("\n").join(configuration)
             text = "SUCCESS: %s > %s > %s configured through %s\n%s" %(site, switch, port, self.configuration_method.upper(), configuration)
             color = self.color["green"]
         else: 
-            text = "\n".join(self.messages)
+            text = "\n".join(messages)
         return [text, color]
 
 
-    def send_message(self):
-        if self.enabled and len(self.messages) > 0 and self._do_not_send == False:
+    def send_message(self, thread_id):
+        if self.enabled and len(self.threads[thread_id]["messages"]) > 0 and self.threads[thread_id]["do_not_send"] == False:
+            messages = self.threads[thread_id]["messages"]
             now = datetime.now()
             now.strftime("%d/%m/%Y %H:%M:%S")
-            part_message = self.messages[0].replace("*NOTICE*: ", "").split("|")
+            part_message = messages[0].replace("*NOTICE*: ", "").split("|")
             site_name = part_message[0].replace("MIST SITE: ", "")
             title = "%s - %s on site %s" %(now, part_message[1], site_name)
-            message, color = self._generate_message()
+            message, color = self._generate_message(messages)
            
             body = {
                 "attachments": [
@@ -114,5 +113,5 @@ class Slack:
             data = json.dumps(body)
             data = data.encode("ascii")
             requests.post(self.url, headers={"Content-type": "application/json"}, data=data)
-            self._clear_data()
+            self._clear_data(thread_id)
 

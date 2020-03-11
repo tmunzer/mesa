@@ -24,9 +24,7 @@ class Console:
     7: debug
     """
 
-    def __init__(self, level=6, slack_config = None, configuration_method = None, req_num = None):
-        if req_num: self.req_num = "REQ %s" %(req_num)
-        else: self.req_num = ""
+    def __init__(self, level=6, slack_config = None, configuration_method = None):
         self.level = level
         self.slack = Slack(slack_config, configuration_method)
         log.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))        
@@ -35,58 +33,58 @@ class Console:
             now = datetime.now()
             return now.strftime("%d/%m/%Y %H:%M:%S")
 
-    def emergency(self, message):
+    def emergency(self, message, thread_id=None):
         if self.level >= 0:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + magenta(' EMERGENCY: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + magenta(' EMERGENCY: ') + message
             print(data)
-            self.slack.add_messages("*EMERGENCY*: " + message, 0)
+            if thread_id: self.slack.add_messages("*EMERGENCY*: " + message, 0, thread_id)
 
-    def alert(self, message):
+    def alert(self, message, thread_id=None):
         if self.level >= 1:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + magenta(' ALERT: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + magenta(' ALERT: ') + message
             print(data)
-            self.slack.add_messages("*ALERT*: " + message, 1)
+            if thread_id: self.slack.add_messages("*ALERT*: " + message, 1, thread_id)
 
-    def critical(self, message):
+    def critical(self, message, thread_id=None):
         if self.level >= 2:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + magenta(' CRITICAL: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + magenta(' CRITICAL: ') + message
             print(data)
-            self.slack.add_messages("*CRITICAL*: " + message, 2)
+            if thread_id: self.slack.add_messages("*CRITICAL*: " + message, 2, thread_id)
 
-    def error(self, message):
+    def error(self, message, thread_id=None):
         if self.level >= 3:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + red(' ERROR: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + red(' ERROR: ') + message
             print(data)
-            self.slack.add_messages("*ERROR*: " + message, 3)
+            if thread_id: self.slack.add_messages("*ERROR*: " + message, 3, thread_id)
 
-    def warning(self, message):
+    def warning(self, message, thread_id=None):
         if self.level >= 4:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + yellow(' WARNING: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + yellow(' WARNING: ') + message
             print(data)
-            self.slack.add_messages("*WARNING*: " + message, 4)
+            if thread_id: self.slack.add_messages("*WARNING*: " + message, 4, thread_id)
 
-    def notice(self, message):
+    def notice(self, message, thread_id=None):
         if self.level >= 5:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + blue(' NOTICE: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + blue(' NOTICE: ') + message
             print(data)
-            self.slack.add_messages("*NOTICE*: " + message, 5)
+            if thread_id: self.slack.add_messages("*NOTICE*: " + message, 5, thread_id)
 
-    def info(self, message):
+    def info(self, message, thread_id=None):
         if self.level >= 6:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + green(' INFO: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + green(' INFO: ') + message
             print(data)
-            self.slack.add_messages("*INFO*: " + message, 6)
+            if thread_id: self.slack.add_messages("*INFO*: " + message, 6, thread_id)
 
-    def debug(self, message):
+    def debug(self, message, thread_id=None):
         if self.level >= 7:
             dt = self.get_datetime()
-            data = dt + ' - ' + self.req_num + ' - ' + white(' DEBUG: ') + message
+            data = dt + ' - REQ ' + str(thread_id) + ' - ' + white(' DEBUG: ') + message
             print(data)
-            self.slack.add_messages("*DEBUG*: " + message, 7)
+            if thread_id: self.slack.add_messages("*DEBUG*: " + message, 7, thread_id)
