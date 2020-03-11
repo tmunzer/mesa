@@ -43,7 +43,7 @@ class MesaDB():
 
     def get_previous_lldp_info(self, ap_mac):
         db_device = self.get_db_device(ap_mac)
-        if db_device and  "lldp_system_name" in db_device and "lldp_port_desc":
+        if db_device and  "lldp_system_name" in db_device and "lldp_port_desc" in db_device :
             return db_device
         else:
             return None

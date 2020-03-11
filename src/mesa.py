@@ -115,64 +115,46 @@ def _deep_dive_lookup_for_ap(org_id, action, level, level_id, level_name, ap_mac
         console.error(
             "MIST AP %s | May have been removed from the Org before I get the message. Unable to retrieve the required informations. Aborting...")
 
+def _route_request(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console, force=False):
+    if configuration_method == "cso":
+        action = cso
+    elif configuration_method == "ex":
+        action = ex
+    else:
+        console.critical("Unable to find the switchport configuration method in the configuration file...")
+    
+    if action == "AP_CONNECTED":        
+        action.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console, level_name)
+        mesa_db.update_db_device(ap_mac, org_id, level_id, True, lldp_system_name, lldp_port_desc)
 
-def _cso(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console, force=False):
-    console.info("MIST SITE: %s | SWITCH: %s | PORT: %s | Configuration will be done through CSO" % (
-        level_name, lldp_system_name, lldp_port_desc))
-    if action == "AP_CONNECTED":
-        cso.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console)
-        mesa_db.update_db_device(
-            ap_mac, org_id, level_id, True, lldp_system_name, lldp_port_desc)
     elif action == "AP_DISCONNECTED":
         if force:
             disconnect_validated = True
         else:
-            disconnect_validated = _disconnect_validation(
-                level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console)
+            disconnect_validated = _disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console)
         if disconnect_validated == True:
-            cso.ap_disconnected(ap_mac, lldp_system_name,
-                                lldp_port_desc, console)
-            mesa_db.update_db_device(
-                ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
+            action.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console, level_name)
+            mesa_db.update_db_device(ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
+
     elif action == "AP_RESTARTED":
         previous_device_state = mesa_db.get_previous_lldp_info(ap_mac)
         if not previous_device_state:
-            console.warning(
-                "AP %s restarted, but the previous value is not in the DB... Processing the message as a AP_CONNECTED message only..." % (ap_mac))
-            _cso("AP_CONNECTED", org_id, level, level_id, level_name,
-                 ap_mac, lldp_system_name, lldp_port_desc, console, True)
+            console.warning("AP %s restarted, but the previous value is not in the DB... Processing the message as a AP_CONNECTED message only..." % (ap_mac))
+            _route_request("AP_CONNECTED", org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console, True)
 
         else:
-            console.debug("Previous LLDP information: %s | %s" % (
-                previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"]))
+            console.debug("Previous LLDP information: %s | %s" % (previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"]))
             console.debug("Current LLDP information : %s | %s" % (lldp_system_name, lldp_port_desc))
-            if not(lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]):
-                _cso("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac,
-                    previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], console, True)
+            if lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]:
+                _route_request("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac, previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], console, True)
                 slack_title = console.slack.messages[1]
                 console.slack.send_message()
                 console.slack._clear_data()
                 console.slack.add_messages(slack_title, 6)
-                _cso("AP_CONNECTED", org_id, level, level_id, level_name,
-                    ap_mac, lldp_system_name, lldp_port_desc, console, True)
+                _route_request("AP_CONNECTED", org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console, True)
             else:
                 console.slack.do_not_send()
-                console.info(
-                    "AP %s restarted, but switchport didn't change... Discarding the message..." % (ap_mac))
-
-
-def _ex(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console):
-    console.info("MIST SITE: %s | SWITCH: %s | PORT: %s | configuration will be done directly on the switch" % (
-        level_name, lldp_system_name, lldp_port_desc))
-    if action == "AP_CONNECTED":
-        ex.ap_connected(level_name, ap_mac, lldp_system_name, lldp_port_desc)
-    elif action == "AP_DISCONNECTED":
-        disconnect_validated = _disconnect_validation(
-            level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, console)
-        if disconnect_validated == True:
-            ex.ap_disconnected(level_name, ap_mac,
-                               lldp_system_name, lldp_port_desc)
-
+                console.info("AP %s restarted, but switchport didn't change... Discarding the message..." % (ap_mac))
 
 def _initiate_conf_change(action, org_id, level, level_id, level_name, ap_mac, retry, console):
     resp = _get_ap_details(level, level_id, ap_mac, console)
@@ -199,7 +181,7 @@ def _initiate_conf_change(action, org_id, level, level_id, level_name, ap_mac, r
             level_name, action, ap_mac))
 
 
-def ap_event(event, thread, active_threads):
+def ap_event(event, thread):
     console = Console(log_level, slack_conf, configuration_method, thread)
     mac = event["ap"]
     if "site_id" in event:
@@ -225,7 +207,6 @@ def ap_event(event, thread, active_threads):
         _initiate_conf_change(action, org_id, level,
                               level_id, level_name, mac, False, console)
     console.slack.send_message()
-    active_threads -= 1
 
 ###########################
 # ENTRY POINT
@@ -242,9 +223,11 @@ def postJsonHandler():
     for event in content["events"]:
         if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED":
             this_thread = active_threads
-            active_threads += 1
-            process = Thread(target=ap_event, args=(
-                event, this_thread, active_threads))
+            if active_threads == 1000:
+                active_threads = 1
+            else:
+                active_threads += 1
+            process = Thread(target=ap_event, args=(event, this_thread))
             process.start()
     return '', 200
 

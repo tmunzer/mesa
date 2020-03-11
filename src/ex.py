@@ -8,13 +8,7 @@ from config import ex_metod
 
 ###########################
 ### LOGGING SETTINGS
-try:
-    from config import log_level
-except:
-    log_level = 6
-finally:
-    from libs.debug import Console
-    console = Console(log_level)
+console = None
 
 ###########################
 ### PARAMETERS
@@ -92,13 +86,17 @@ def _change_ex_conf(level_name, switch, conf):
             _ex_unlock(level_name, cu, switch)
             dev.close()
 
-def ap_connected(level_name, mac, lldp_system_name, lldp_port_desc):
+def ap_connected(mac, lldp_system_name, lldp_port_desc, level_name, o_console):
+    global console 
+    console = o_console
     lldp_system_name = "%s.%s" %(lldp_system_name, domain_name)
     console.info("SITE: %s | SWITCH: %s | PORT: %s | AP %s connected" %(level_name, lldp_system_name, lldp_port_desc, mac))
     conf = _replace_port(ex_conf_trunk_ap, lldp_port_desc)
     _change_ex_conf(level_name, lldp_system_name, conf)
 
-def ap_disconnected(level_name, mac, lldp_system_name, lldp_port_desc):
+def ap_disconnected(mac, lldp_system_name, lldp_port_desc, level_name, o_console):
+    global console 
+    console = o_console
     lldp_system_name = "%s.%s" %(lldp_system_name, domain_name)
     console.info("SITE: %s | SWITCH: %s | PORT: %s | AP %s disconnected" %(level_name, lldp_system_name, lldp_port_desc, mac))
     conf = _replace_port(ex_conf_default, lldp_port_desc)
