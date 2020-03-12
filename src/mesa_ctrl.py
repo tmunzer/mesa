@@ -21,7 +21,10 @@ mist_cloud = mist_conf["mist_cloud"]
 site_id_ignored = mist_conf["site_id_ignored"]
 disconnect_validation_method = disconnect_validation["method"]
 disconnect_validation_wait_time = disconnect_validation["wait_time"]
-
+if "wait_for_cloud_update" in mist_conf:
+    wait_for_cloud_update = mist_conf["wait_for_cloud_update"]
+else:
+    wait_for_cloud_update = 15
 ###########################
 # LOGGING SETTINGS
 try:
@@ -130,9 +133,8 @@ class Mesa(Thread):
             console.error("MIST AP %s | May have been removed from the Org before I get the message. Unable to retrieve the required informations. Aborting...", self.thread_id)
 
     def _pausing_for_cloud_update(self):
-        pause_time = 5
-        console.info("Pausing %s seconds to let the Cloud update the information..." %(pause_time), self.thread_id)
-        time.sleep(pause_time)
+        console.info("Pausing %s seconds to let the Cloud update the information..." %(wait_for_cloud_update), self.thread_id)
+        time.sleep(wait_for_cloud_update)
 
     def _route_request(self, action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, force=False):
         if configuration_method == "cso":
