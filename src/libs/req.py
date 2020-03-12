@@ -33,7 +33,7 @@ def get(url, headers={}, query={}):
     Return: HTTP response"""
     try:
         html_query = "?"
-        headers{"Cache-Control": "no-cache"}
+        headers["Cache-Control"]= "no-cache"
         if not query == {}:
             for query_param in query:
                 html_query += "%s=%s&" %(query_param, query[query_param])
