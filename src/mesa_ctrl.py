@@ -129,6 +129,11 @@ class Mesa(Thread):
         else:
             console.error("MIST AP %s | May have been removed from the Org before I get the message. Unable to retrieve the required informations. Aborting...", self.thread_id)
 
+    def _pausing_for_cloud_update(self):
+        pause_time = 5
+        console.info("Pausing %s seconds to let the Cloud update the information..." %(pause_time), self.thread_id)
+        time.sleep(pause_time)
+
     def _route_request(self, action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, force=False):
         if configuration_method == "cso":
             configuration_route = cso
@@ -137,21 +142,24 @@ class Mesa(Thread):
         else:
             console.critical("Unable to find the switchport configuration method in the configuration file...", self.thread_id)
         
-        if action == "AP_CONNECTED":        
+        if action == "AP_CONNECTED":      
+            if not force: self._pausing_for_cloud_update()
             configuration_route.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
             self.mesa_db.update_db_device(ap_mac, org_id, level_id, True, lldp_system_name, lldp_port_desc)
             console.slack.send_message(self.thread_id)
 
-        elif action == "AP_DISCONNECTED":
+        elif action == "AP_DISCONNECTED":            
             if force:
                 disconnect_validated = True
             else:
+                self._pausing_for_cloud_update()
                 disconnect_validated = self._disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
             if disconnect_validated == True:
                 configuration_route.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
                 self.mesa_db.update_db_device(ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
 
         elif action == "AP_RESTARTED":
+            self._pausing_for_cloud_update()
             previous_device_state = self.mesa_db.get_previous_lldp_info(ap_mac)
             if not previous_device_state:
                 console.warning("AP %s restarted, but the previous value is not in the DB... Processing the message as a AP_CONNECTED message only..." % (ap_mac), self.thread_id)
