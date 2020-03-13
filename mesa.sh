@@ -626,7 +626,10 @@ function get_active_compose_files
 
 function enable_docker_compose
 {
-  ln -s $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
+  if [ ! -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
+  then
+    ln -s $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
+  fi
 }
 function disable_docker_compose
 {
@@ -723,8 +726,7 @@ function stop_containers
 ################################################################################
 function auto_deploy
 {
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml build
-  start_containers
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml up -d    
 }
 
 function deploy
