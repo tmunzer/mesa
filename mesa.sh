@@ -630,7 +630,10 @@ function enable_docker_compose
 }
 function disable_docker_compose
 {
-  rm $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
+  if [ -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
+  then
+    rm $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
+  fi
 }
 
 function start_container # CONT NAME
