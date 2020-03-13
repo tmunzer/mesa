@@ -676,9 +676,14 @@ function start_containers
 
 function stop_container # CONT NAME
 {
-  disable_docker_compose
-  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml stop $1
-  retvalAPP=$?
+  if [ -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
+  then
+    disable_docker_compose
+    $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml stop $1
+    retvalAPP=$?
+  else
+    retvalAPP=0
+  fi
   if [ $retvalAPP -eq 0 ] 
   then
     echo ""
@@ -692,8 +697,14 @@ function stop_container # CONT NAME
 
 function stop_containers
 {
-  $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml stop
-  retvalAPP=$?
+  if [ -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
+  then
+    disable_docker_compose
+    $DOCKER_COMP --file $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml stop
+    retvalAPP=$?
+  else
+    retvalAPP=0
+  fi  
   if [ $retvalAPP -eq 0 ] 
   then
     echo ""
