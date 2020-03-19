@@ -8,7 +8,7 @@
 #
 # =========================================================
 # =========================================================
-SCRIPT_CONF=`pwd`"/mist-doker.conf"
+SCRIPT_CONF=`pwd`"/mist-docker.conf"
 SCRIPT_NAME="mesa.py"
 
 APP_NAME="mesa"
