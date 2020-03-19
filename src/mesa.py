@@ -37,7 +37,7 @@ def postJsonHandler():
     global mesa_db
     content = request.get_json()
     for event in content["events"]:
-        if event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED":
+        if "type" in event and (event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED"):
             thread_id = active_threads
             if active_threads == 1000:
                 active_threads = 1
