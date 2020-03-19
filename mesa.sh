@@ -730,7 +730,7 @@ function stop_containers
 function auto_deploy
 {
   enable_docker_compose
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml create 
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml up --no-start 
   $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start 
 }
 
