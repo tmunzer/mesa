@@ -84,7 +84,7 @@ services:
         container_name: "mist-mongodb"
         restart: always
         volumes: 
-            - $PERSISTANT_FOLDER/$DB_FOLDER:/data/db
+            - $MONGO_FOLDER:/data/db
 
     $APP_NAME: 
         image: $APP_IMG
@@ -405,7 +405,7 @@ function init_script_conf
   fi
   if echo "$PERSISTANT_FOLDER" | grep -i [a-z] > /dev/null
   then
-    DB_FOLDER="$PERSISTANT_FOLDER/$DB_FOLDER"
+    MONGO_FOLDER="$PERSISTANT_FOLDER/$DB_FOLDER"
     NGINX_CERTS_FOLDER="$PERSISTANT_FOLDER/$NGINX_CERTS_FOLDER"
     DOCKER_COMPOSE_FOLDER="$PERSISTANT_FOLDER/container-enable"
     echo -e "${INFOC}INFO${NC}: Script configuration loaded succesfully."
@@ -601,7 +601,7 @@ function result_banner
   echo ""
   echo -e "${INFOC}INFO${NC}: NGINX SSL/TLS certifcates are in $NGINX_CERTS_FOLDER"
   echo ""
-  echo -e "${INFOC}INFO${NC}: MongoDB files are in $DB_FOLDER"
+  echo -e "${INFOC}INFO${NC}: MongoDB files are in $MONGO_FOLDER"
   echo ""
   echo ""
   echo -e "${INFOC}INFO${NC}: $APP_NAME interface should now be avaible soon"
@@ -814,7 +814,7 @@ function init_script
   init_script_conf
 
   check_folder "container-enable" $DOCKER_COMPOSE_FOLDER
-  check_folder "Database" $DB_FOLDER
+  check_folder "Database" $MONGO_FOLDER
   check_folder "Certificates" $NGINX_CERTS_FOLDER
   check_folder "App" "$PERSISTANT_FOLDER/$APP_NAME"
   
