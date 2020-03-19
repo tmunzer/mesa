@@ -758,10 +758,16 @@ function deploy
 ################################################################################
 function update_app
 {
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop  
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml rm
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml pull
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml create
+  if [ -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
+  then 
+    $CONT_FILE="$DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml"
+  else
+    $CONT_FILE="$PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml"
+  fi
+  $DOCKER_COMP --file $CONT_FILE stop  
+  $DOCKER_COMP --file $CONT_FILE rm -f
+  $DOCKER_COMP --file $CONT_FILE pull
+  $DOCKER_COMP --file $CONT_FILE create
   compose_files="$(get_active_compose_files)"
   if [ -n "$compose_files" ]
   then
