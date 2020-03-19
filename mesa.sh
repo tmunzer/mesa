@@ -56,17 +56,12 @@ function banner
 ############################    FILE GENERATORS
 ################################################################################
 
-function generate_docker_compose_file # $XX_NAME
+function generate_docker_compose_ngninx # $XX_NAME
 {
-  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml ]
+  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/docker-compose.nginx.yaml ]
   then 
-    echo -e "${WARNINGC}WARNING${NC}:This script will automatically generate a docker-compose"
-    echo -e "         file to download docker images and manage containers. "
-    echo ""
-    echo -e "         File location: $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml"
-    echo ""
-    cat <<EOF > $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml
-version: '3'
+    cat <<EOF > $PERSISTANT_FOLDER/$APP_NAME/docker-compose.nginx.yaml
+version: '3.5'
 services:    
     nginx:
         image: "jwilder/nginx-proxy"
@@ -78,29 +73,70 @@ services:
             - /var/run/docker.sock:/tmp/docker.sock:ro        
             - /etc/nginx/vhost.d
         restart: always
+        networks:
+            - mist-net-nginx
 
+
+networks:
+    mist-net-nginx:
+        driver: bridge
+        name: mist-net-nginx
+EOF
+  fi
+}
+function generate_docker_compose_mongodb # $XX_NAME
+{
+  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/docker-compose.mongodb.yaml ]
+  then 
+    cat <<EOF > $PERSISTANT_FOLDER/$APP_NAME/docker-compose.mongodb.yaml
+version: '3.5'
+services:    
     mongodb:
         image: "mongo"
         container_name: "mist-mongodb"
         restart: always
         volumes: 
             - $MONGO_FOLDER:/data/db
+        networks:
+            - mist-net-mongodb
 
+networks:
+    mist-net-mongodb:
+        driver: bridge
+        name: mist-net-mongodb
+
+EOF
+  fi
+}
+function generate_docker_compose_app # $XX_NAME
+{
+  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml ]
+  then 
+    cat <<EOF > $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml
+version: '3.5'
+services:    
     $APP_NAME: 
         image: $APP_IMG
         container_name: "mist-$APP_NAME"
-        depends_on: 
+        external_links: 
             - nginx
-            - mongodb
+            - mongodb:mist-mongo
         environment:
             - VIRTUAL_HOST=$APP_VHOST
         volumes:
             - $PERSISTANT_FOLDER/$APP_NAME/config.py:/app/config.py:ro         
-        links:
-            - mongodb:mist-mongo
+        networks:            
+            - mist-net-nginx
+            - mist-net-mongodb
+networks:
+  mist-net-nginx:
+    name: mist-net-nginx
+  mist-net-mongodb:
+    name: mist-net-mongodb
 EOF
   fi
 }
+
 
 function generate_conf_file # $XX_NAME
 {
@@ -563,16 +599,38 @@ function menu_certificates
 ################################################################################
 ############################    FILES VALIDATORS
 ################################################################################
+function generate_docker_compose_file 
+{
+  case $1 in
+    "nginx") generate_docker_compose_ngninx;;
+    "mongodb") generate_docker_compose_mongodb;;
+    $APP_NAME) generate_docker_compose_app;;
+  esac 
+}
 
 function check_docker_compose_file
 {
-  if [ ! -f $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml ]
+  if [ ! -f "$PERSISTANT_FOLDER/$APP_NAME/docker-compose.$1.yaml" ]
   then
-    echo -e "${ERRORC}ERROR${NC}: Unable to find the docker-compose file for $APP_NAME."
-    generate_docker_compose_file
+    echo -e "${ERRORC}ERROR${NC}: Unable to find the docker-compose file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$1.yaml"
+    generate_docker_compose_file $1
   else
-    echo -e "${INFOC}INFO${NC}: docker-compose file found in $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml"
+    echo -e "${INFOC}INFO${NC}: docker-compose file found in $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$1.yaml"
   fi
+}
+
+function check_docker_compose_files
+{
+  if [ "$NGINX_IMG" ]
+  then
+    check_docker_compose_file "nginx"
+  fi
+  if [ "$DB_IMG" ]
+  then
+    check_docker_compose_file "mongodb"
+  fi
+  check_docker_compose_file "$APP_NAME"
+  
 }
 
 function check_configuration_file
@@ -629,9 +687,20 @@ function enable_docker_compose
 {
   if [ ! -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
   then
-    ln -s $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
+    ln -s $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml
   fi
+  if [ "$NGINX_IMG" ] && [ ! -f $DOCKER_COMPOSE_FOLDER/docker-compose.nginx.yaml ]
+  then
+    ln -s $PERSISTANT_FOLDER/$APP_NAME/docker-compose.nginx.yaml $DOCKER_COMPOSE_FOLDER/docker-compose.nginx.yaml
+  fi
+  if [ "$DB_IMG" ] && [ ! -f $DOCKER_COMPOSE_FOLDER/docker-compose.mongodb.yaml ]
+  then
+    ln -s $PERSISTANT_FOLDER/$APP_NAME/docker-compose.mongodb.yaml $DOCKER_COMPOSE_FOLDER/docker-compose.mongodb.yaml
+  fi
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.nginx.yaml up -d
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.mongodb.yaml up -d
 }
+
 function disable_docker_compose
 {
   if [ -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
@@ -703,7 +772,7 @@ function stop_containers
 {
   if [ -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
   then
-    $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop
+    $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml stop
     disable_docker_compose
     retvalAPP=$?
   else
@@ -728,10 +797,10 @@ function stop_containers
 ############################    DEPLOY
 ################################################################################
 function auto_deploy
-{
-  enable_docker_compose
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml up --no-start 
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml start 
+{  
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml up --no-start 
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml start 
+  start_containers
 }
 
 function deploy
@@ -761,14 +830,13 @@ function deploy
 ################################################################################
 function update_app
 {
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml stop  
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml rm --force
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml pull
-  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.yaml up --no-start
-  compose_files="$(get_active_compose_files)"
-  if [ -n "$compose_files" ]
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml stop  
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml rm --force
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml pull
+  $DOCKER_COMP --file $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml up --no-start
+  if [ -f $DOCKER_COMPOSE_FOLDER/docker-compose.$APP_NAME.yaml ]
   then
-    docker-compose $compose_files start
+    docker-compose $PERSISTANT_FOLDER/$APP_NAME/docker-compose.$APP_NAME.yaml start
   fi
 }
 
@@ -822,7 +890,7 @@ function init_script
   check_certificates
 
   check_configuration_file
-  check_docker_compose_file
+  check_docker_compose_files
 
   echo -e "${INFOC}INFO${NC}: Script init done."
   echo "||============================================================================="
