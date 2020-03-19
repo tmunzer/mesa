@@ -157,6 +157,7 @@ class Mesa(Thread):
             if disconnect_validated == True:
                 configuration_route.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
                 self.mesa_db.update_db_device(ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
+                console.slack.send_message(self.thread_id)
 
         elif action == "AP_RESTARTED":
             previous_device_state = self.mesa_db.get_previous_lldp_info(ap_mac)
