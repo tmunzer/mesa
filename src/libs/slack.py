@@ -97,7 +97,6 @@ class Slack:
     def send_message(self, thread_id):
         if self.enabled and len(self.threads[thread_id]["messages"]) > 0 and self.threads[thread_id]["do_not_send"] == False:
             messages = self.threads[thread_id]["messages"]
-            print(messages)
             now = datetime.now()
             now.strftime("%d/%m/%Y %H:%M:%S")
             part_message = messages[0].replace("*NOTICE*: ", "").split("|")
