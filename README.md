@@ -29,14 +29,15 @@ This will tell Mist Cloud to send AP events (like AP Connected/Disconnected) to 
 <img src="__readme_img/cso_process.png" width="40%">
 
 The following steps are explaining the communication when using CSO integration.
-1. When an admin connects an AP on any switchport (1) , the switch is using MAC authentication, and the RADIUS server is returning a VLAN id allowing the AP to contact the Mist Cloud (1’)
-2. Once the AP connects the Mist Cloud, it will report the switch LLDP information (hostname, switchport desc, …) (2)
-3. At the same time, Mist Cloud is sending a webhook message to the MESA server indicating this AP just connects (3)
-4. MESA server will use Mist APIs to get more information, especially the switch hostname and the switchport (4)
-5. MESA server will contact CSO to get the information required to generate the “AP_profile” configuration. (5)
-6. Once the new configuration is generated, MESA will use CSO APIs to apply it to the switchport and ask CSO to deploy the changes to the switch (6)
-7. CSO will deploy the new configuration, which will change the switchport from access mode to trunk mode and configure the required VLANs (7)
-8. When an admin disconnects an AP from any switchport, the process will be the same, except that the configuration will be generated to revert the switchport back to the “secured_profile” (containing the 802.1X/MAB settigs)
+1. AP connected to the switch.
+2. The switch is using MAC authentication, and the RADIUS server is returning a VLAN id allowing the AP to contact the Mist Cloud.
+3. The AP connects to the Mist Cloud and report the switch LLDP information (hostname, switchport desc, ...).
+4. Mist Cloud sends a webhook message “AP_CONNECTED” to the MESA server with the AP Identifier.
+5. MESA server will use Mist APIs to get more information, especially the switch hostname and the switchport.
+6. MESA server will contact CSO to get the information required to generate the “AP_mode” configuration.
+7. Once the new configuration is generated, MESA will use CSO APIs to apply it to the switchport and ask CSO to deploy the changes to the switch.
+8. CSO will deploy the new configuration, which will change the switchport from access mode to trunk mode and configure the required VLANs.
+9. When an admin disconnects an AP from any switchport, the process will be the same, except that the configuration will be generated to revert the switchport back to the “secured_mode”.
 
 # Added features (optional):
 * Site outage for AP_DISCONNECTED: the system can check if many APs from the samel site are disconnected in a short period of time. In this case, it will consider a site outage and will not revert the switchport back to its "default" configuration
