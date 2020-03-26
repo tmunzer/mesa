@@ -26,7 +26,7 @@ This will tell Mist Cloud to send AP events (like AP Connected/Disconnected) to 
    `
 
 # How it works
-<img src="__readme_img/cso_process.png" width="40%">
+<img src="__readme_img/cso_process.png" width="90%">
 
 The following steps are explaining the communication when using CSO integration.
 1. AP connected to the switch.
