@@ -172,7 +172,7 @@ def _set_switchport_config(site_name, switch_uuid, port_name, port_profile_uuid,
         }
     }
     console.notice("""CSO SITE: %s | SWITCH: %s | PORT: %s | Sending request to CSO to apply new configuration:
-    Port profile name: %s
+    Port Profile Name: %s
     Lan Segments: %s
     Native VLAN: %s """ %(site_name, switch_name, port_name, profile_name, lan_segments, native_lan), thread_id)    
 

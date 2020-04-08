@@ -28,6 +28,10 @@ slack_conf = {
     "enabled" : False,
     "url": "https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX"
 }
+msteams_conf = {
+    "enabled" : False,
+    "url": "https://outlook.office.com/webhook/XXXXXXXXX/IncomingWebhook/XXXXXXXXX"
+}
 ########################
 # disconnect_validation
 # Indicate the script if the AP_DISCONNECT message has to be verified.

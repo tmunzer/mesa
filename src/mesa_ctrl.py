@@ -2,6 +2,7 @@
 import lldp_detection
 import outage_detection
 from config import slack_conf
+from config import msteams_conf
 from config import configuration_method
 from config import disconnect_validation
 from config import mist_conf
@@ -33,7 +34,7 @@ except:
     log_level = 6
 finally:
     from libs.debug import Console
-console = Console(log_level, slack_conf, configuration_method)
+console = Console(log_level, slack_conf, msteams_conf, configuration_method)
 
 ###########################
 ### METHODS IMPORT ###
@@ -148,6 +149,7 @@ class Mesa(Thread):
             configuration_route.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
             self.mesa_db.update_db_device(ap_mac, org_id, level_id, True, lldp_system_name, lldp_port_desc)
             console.slack.send_message(self.thread_id)
+            console.msteams.send_message(self.thread_id)
 
         elif action == "AP_DISCONNECTED":            
             if force:
@@ -158,6 +160,7 @@ class Mesa(Thread):
                 configuration_route.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
                 self.mesa_db.update_db_device(ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
                 console.slack.send_message(self.thread_id)
+                console.msteams.send_message(self.thread_id)
 
         elif action == "AP_RESTARTED":
             previous_device_state = self.mesa_db.get_previous_lldp_info(ap_mac)
@@ -171,9 +174,11 @@ class Mesa(Thread):
                 if lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]:
                     self._route_request("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac, previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], True)                    
                     console.slack.add_messages("*NOTICE*: MIST SITE: %s | RECEIVED message AP_RESTARTED for AP %s" %(level_name, ap_mac), 5, self.thread_id)
+                    console.msteams.add_messages("*NOTICE*: MIST SITE: %s | RECEIVED message AP_RESTARTED for AP %s" %(level_name, ap_mac), 5, self.thread_id)
                     self._route_request("AP_CONNECTED", org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, True)
                 else:
                     console.slack.do_not_send(self.thread_id)
+                    console.msteams.do_not_send(self.thread_id)
                     console.info("AP %s restarted, but switchport didn't change... Discarding the message..." % (ap_mac), self.thread_id)
 
 
