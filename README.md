@@ -45,6 +45,9 @@ The following steps are explaining the communication when using CSO integration.
 * Slack notifification when a AP_DISCONNECTED / AP_CONNECTED message is received, which the configuration change applied.
 <img src="__readme_img/slack.png" width="40%">
 
+* MSTeams notifification when a AP_DISCONNECTED / AP_CONNECTED message is received, which the configuration change applied.
+<img src="__readme_img/msteams.png" width="40%">
+
 # How to use it
 ## Docker Image
 You can easily deploy this application with [Docker](https://www.docker.com/). The image is publicly available on Docker Hub at https://hub.docker.com/r/tmunzer/mesa/.
