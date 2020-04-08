@@ -1,4 +1,5 @@
 from libs import req
+import re
 import requests
 import json
 import time
@@ -100,17 +101,17 @@ class Teams:
 
 
     def _msteams_message(self, message):
-        messages = message.split(":")
-        port_profile_index = messages.index("Port Profile Name")
-        if port_profile_index: port_profile = message[port_profile_index + 1]
+        messages = re.split(r'[:\n]', message.replace(" ", ""))
+        port_profile_index = messages.index("PortProfileName")
+        if port_profile_index: port_profile = messages[port_profile_index + 1]
         else: port_profile: "Unknow"
 
-        lan_segment_index = messages.index("LAN Segments")
-        if lan_segment_index: lan_segment = message[lan_segment_index + 1]
+        lan_segment_index = messages.index("LANSegments")
+        if lan_segment_index: lan_segment = messages[lan_segment_index + 1]
         else: lan_segment: "Unknow"
 
-        native_vlan_index = messages.index("Native VLAN")
-        if native_vlan_index: native_vlan = message[native_vlan_index + 1]
+        native_vlan_index = messages.index("NativeVLAN")
+        if native_vlan_index: native_vlan = messages[native_vlan_index + 1]
         else: native_vlan: "Unknow"
 
         return [port_profile, lan_segment, native_vlan]
@@ -134,7 +135,7 @@ class Teams:
                 "summary": title,
                 "sections": [{
                     "activityTitle": title,
-                    "activitySubtitle": now,
+                    "activitySubtitle": str(now),
                     "facts": [{
                         "name": status,
                         "value": "CSO SITE: lab > SWITCH: sw-jn-01.lab.THOMAS_MUN > PORT: ge-0/0/0 configured through CSO"
@@ -152,6 +153,7 @@ class Teams:
                 }]
             }
             data = json.dumps(body)
+            print(data)
             data = data.encode("ascii")
             requests.post(self.url, headers={
                           "Content-type": "application/json"}, data=data)

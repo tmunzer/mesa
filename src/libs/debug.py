@@ -1,5 +1,6 @@
 from datetime import datetime
 from .slack import Slack
+from .msteams import Teams
 import logging as log
 import os
 
@@ -27,7 +28,7 @@ class Console:
     def __init__(self, level=6, slack_config = None, msteams_conf = None, configuration_method = None):
         self.level = level
         self.slack = Slack(slack_config, configuration_method)
-        self.msteams = Slack(slack_config, configuration_method)
+        self.msteams = Teams(msteams_conf, configuration_method)
         log.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))        
 
     def get_datetime(self):
