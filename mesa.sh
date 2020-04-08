@@ -717,7 +717,7 @@ function start_container # CONT NAME
 {
   enable_docker_compose
   compose_files="$(get_active_compose_files)"
-  docker-compose $compose_files start $1
+  $DOCKER_COMP $compose_files start $1
   retvalAPP=$?
   if [ $retvalAPP -eq 0 ] 
   then
@@ -734,7 +734,7 @@ function start_containers
 {
   enable_docker_compose
   compose_files="$(get_active_compose_files)"
-  docker-compose $compose_files start
+  $DOCKER_COMP $compose_files start
   retvalAPP=$?
   if [ $retvalAPP -eq 0 ] 
   then
