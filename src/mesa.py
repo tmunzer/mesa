@@ -12,7 +12,7 @@ server_uri = mist_conf["server_uri"]
 
 from mongo import MesaDB
 mongo_host = "mist-mongo"
-mongo_host = None
+#mongo_host = None
 mesa_db = MesaDB(server=mongo_host)
 
 
