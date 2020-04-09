@@ -20,8 +20,8 @@ class Teams:
         self.color = {
             "green": "#36a64f",
             "blue": "#2196f3",
-            "orange": "warning",
-            "red": "danger"
+            "orange": "#F39C12",
+            "red": "#E74C3C"
 
         }
 
@@ -55,66 +55,69 @@ class Teams:
         part_message = message.split(" | ")
         part_len = len(part_message)
         if part_len == 2:
-            return [part_message[0], "Unknown", "Unknown", part_message[1]]
+            return [part_message[0], "Switch Unknown", "Port Unknown", part_message[1]]
         elif part_len == 3:
-            return [part_message[0], part_message[1], "Unknown", part_message[2]]
+            return [part_message[0], part_message[1], "Port Unknown", part_message[2]]
         elif part_len == 4:
             return [part_message[0], part_message[1], part_message[2], part_message[3]]
         else:
-            return ["Unknown", "Unknown", "Unknown", message]
+            return ["Site Unknown", "Switch Unknown", "Port Unknown", message]
 
     def _generate_message(self, messages):
-        text = ""
-        site = "Unknown"
-        switch = "Unknown"
-        port = "Unknown"
-        info = "Unknown"
         color = "#aaaaaa"
         status = "WARNING"
         index_messages = len(messages) - 1
         if "ERROR" in messages[index_messages]:
-            message = messages[index_messages].replace("*ERROR*: ", "")
-            site, switch, port, info = self._split_message(message)
-            text = "%s > %s > %s configured through %s:\n %s" % (
-                site, switch, port, self.configuration_method.upper(), info)
             status = "ERROR"
             color = self.color["red"]
-        if "WARNING" in messages[index_messages]:
-            message = messages[index_messages].replace("*WARNING*: ", "")
-            site, switch, port, info = self._split_message(message)
-            text = "%s > %s > %s configured through %s:\n %s" % (
-                site, switch, port, self.configuration_method.upper(), info)
+            facts = self._generate_not_success(status, messages)  
+        elif "WARNING" in messages[index_messages]:
             status = "ABORTED"
             color = self.color["orange"]
+            facts = self._generate_not_success(status, messages)  
         elif "NOTICE" in messages[index_messages]:
             message = messages[index_messages].replace("*NOTICE*: ", "")
-            site, switch, port, info = self._split_message(message)
             configuration = messages[index_messages-1].split("\n")[1:]
-            configuration = ("\n").join(configuration)
-            text = "%s > %s > %s configured through %s\n%s" % (
-                site, switch, port, self.configuration_method.upper(), configuration)
             status = "SUCCESS"
             color = self.color["green"]
+            facts = self._generate_success(status, message, configuration)            
         else:
-            text = "\n".join(messages)
-        return [status, text, color]
+            facts = self._generate_not_success(status, messages)  
+        return [status, facts, color]
+
+    def _generate_not_success(self, status, messages):
+        facts = []     
+        for mess in messages:
+            name, value = mess.split(":", 1)
+            facts.append({"name": name.replace("*",""), "value": value})
+        return facts
 
 
-    def _msteams_message(self, message):
-        messages = re.split(r'[:\n]', message.replace(" ", ""))
-        port_profile_index = messages.index("PortProfileName")
-        if port_profile_index: port_profile = messages[port_profile_index + 1]
-        else: port_profile: "Unknow"
+    def _generate_success(self, status, message, configuration):
+        site, switch, port, info = self._split_message(message)
+        text = "%s > %s > %s configured through %s" % (
+            site, switch, port, self.configuration_method.upper())
+ 
+        port_profile = "Unknown"
+        lan_segment = "Unknown"
+        native_vlan = "Unknown"
+        for conf in configuration:
+            key, value = conf.split(":") 
+            if key.strip() == "Port Profile Name":
+                port_profile = value.strip()
+            elif key.strip() == "LAN Segments":
+                lan_segment = value.strip()
+            elif key.strip() == "Native VLAN":
+                native_vlan = value.strip()
+        
+        facts = [
+            {"name": status, "value": text},
+            {"name": "Port Profile Name","value": port_profile},
+            {"name": "LAN Segment","value": lan_segment},
+            {"name": "Native VLAN","value": native_vlan}
+            ]     
 
-        lan_segment_index = messages.index("LANSegments")
-        if lan_segment_index: lan_segment = messages[lan_segment_index + 1]
-        else: lan_segment: "Unknow"
-
-        native_vlan_index = messages.index("NativeVLAN")
-        if native_vlan_index: native_vlan = messages[native_vlan_index + 1]
-        else: native_vlan: "Unknow"
-
-        return [port_profile, lan_segment, native_vlan]
+        return facts
 
 
     def send_message(self, thread_id):
@@ -125,9 +128,8 @@ class Teams:
             part_message = messages[0].replace("*NOTICE*: ", "").split("|")
             site_name = part_message[0].replace("MIST SITE: ", "")
             title = "%s on site %s" % (part_message[1], site_name)
-            status, message, color = self._generate_message(messages)
-            port_profile, lan_segment, native_vlan = self._msteams_message(message)
-
+            status, facts, color = self._generate_message(messages)
+            print(color)
             body = {
                 "@type": "MessageCard",
                 "@context": "http://schema.org/extensions",
@@ -136,19 +138,7 @@ class Teams:
                 "sections": [{
                     "activityTitle": title,
                     "activitySubtitle": str(now),
-                    "facts": [{
-                        "name": status,
-                        "value": "CSO SITE: lab > SWITCH: sw-jn-01.lab.THOMAS_MUN > PORT: ge-0/0/0 configured through CSO"
-                    }, {
-                        "name": "Port Profile Name",
-                        "value": port_profile
-                    }, {
-                        "name": "LAN Segment",
-                        "value": lan_segment
-                    }, {
-                        "name": "Native VLAN",
-                        "value": native_vlan
-                    }],
+                    "facts": facts,
                     "markdown": True
                 }]
             }

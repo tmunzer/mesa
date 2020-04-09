@@ -114,6 +114,7 @@ class Mesa(Thread):
             return (resp["result"]["name"], resp["result"]["id"])
         else:
             console.error("MIST AP %s | Not on site %s anymore, and unable to find where it is. Aborting..." % (device["mac"], level_name), self.thread_id)
+            console.send_message(self.thread_id)
 
 
     def _deep_dive_lookup_for_ap(self, org_id, action, level, level_id, level_name, ap_mac, retry):
@@ -132,6 +133,7 @@ class Mesa(Thread):
                     break
         else:
             console.error("MIST AP %s | May have been removed from the Org before I get the message. Unable to retrieve the required informations. Aborting...", self.thread_id)
+            console.send_message(self.thread_id)
 
     def _pausing_for_cloud_update(self):
         console.info("Pausing %s seconds to let the Cloud update the information..." %(wait_for_cloud_update), self.thread_id)
@@ -148,8 +150,7 @@ class Mesa(Thread):
         if action == "AP_CONNECTED":      
             configuration_route.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
             self.mesa_db.update_db_device(ap_mac, org_id, level_id, True, lldp_system_name, lldp_port_desc)
-            console.slack.send_message(self.thread_id)
-            console.msteams.send_message(self.thread_id)
+            console.send_message(self.thread_id)
 
         elif action == "AP_DISCONNECTED":            
             if force:
@@ -159,8 +160,7 @@ class Mesa(Thread):
             if disconnect_validated == True:
                 configuration_route.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
                 self.mesa_db.update_db_device(ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
-                console.slack.send_message(self.thread_id)
-                console.msteams.send_message(self.thread_id)
+                console.send_message(self.thread_id)
 
         elif action == "AP_RESTARTED":
             previous_device_state = self.mesa_db.get_previous_lldp_info(ap_mac)
@@ -173,12 +173,10 @@ class Mesa(Thread):
                 console.debug("Current LLDP information : %s | %s" % (lldp_system_name, lldp_port_desc), self.thread_id)
                 if lldp_system_name != previous_device_state["lldp_system_name"] or lldp_port_desc != previous_device_state["lldp_port_desc"]:
                     self._route_request("AP_DISCONNECTED", org_id, level, level_id, level_name, ap_mac, previous_device_state["lldp_system_name"], previous_device_state["lldp_port_desc"], True)                    
-                    console.slack.add_messages("*NOTICE*: MIST SITE: %s | RECEIVED message AP_RESTARTED for AP %s" %(level_name, ap_mac), 5, self.thread_id)
-                    console.msteams.add_messages("*NOTICE*: MIST SITE: %s | RECEIVED message AP_RESTARTED for AP %s" %(level_name, ap_mac), 5, self.thread_id)
+                    console.add_message(5, "MIST SITE: %s | RECEIVED message AP_RESTARTED for AP %s" %(level_name, ap_mac), self.thread_id)                    
                     self._route_request("AP_CONNECTED", org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, True)
                 else:
-                    console.slack.do_not_send(self.thread_id)
-                    console.msteams.do_not_send(self.thread_id)
+                    console.do_not_send_message(self.thread_id)
                     console.info("AP %s restarted, but switchport didn't change... Discarding the message..." % (ap_mac), self.thread_id)
 
 
@@ -187,6 +185,7 @@ class Mesa(Thread):
         if action == "AP_RESTARTED":
             self._pausing_for_cloud_update()
         resp = self._get_ap_details(level, level_id, ap_mac)
+        time.sleep(2)
         if resp and "results" in resp and len(resp["results"]) == 1:
             console.debug("AP %s found in %s %s" % (ap_mac, level, level_id), self.thread_id)
             ap_info = resp["results"][0]
@@ -197,11 +196,13 @@ class Mesa(Thread):
             else:
                 console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" % (
                     level_name, action, ap_mac), self.thread_id)
+                console.send_message(self.thread_id)
         elif not retry:
             self._deep_dive_lookup_for_ap(
                 org_id, action, level, level_id, level_name, ap_mac, retry)
         else:
-            console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable to find it" % (
+            console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable to find it. Aborting after 2 tries..." % (
                 level_name, action, ap_mac), self.thread_id)
+            console.send_message(self.thread_id)
 
 
