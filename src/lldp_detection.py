@@ -17,7 +17,7 @@ server_uri = mist_conf["server_uri"]
 ### FUNCTIONS
 
 def _get_switch_info(level, level_id, level_name, switch_name, console, thread_id):
-    url = "https://%s/api/v1/%s/%s/devices/search?type=switch&hostname=%s" %(mist_cloud, level, level_id, switch_name)     
+    url = "https://%s/api/v1/%s/%s/devices/search?type=switch&name=%s" %(mist_cloud, level, level_id, switch_name)     
     headers = {'Content-Type': "application/json", "Authorization": "Token %s" %apitoken}
     resp = req.get(url, headers=headers)
     if "result" in resp and "results" in resp["result"]:
@@ -25,9 +25,7 @@ def _get_switch_info(level, level_id, level_name, switch_name, console, thread_i
             return resp["result"]["results"][0]
     console.error("MIST SITE: %s | SWITCH: %s | Unable to get the switch info" %(level_name, switch_name), thread_id)
     console.send_message(thread_id)
-    return []
-        
-    
+    return resp[0]
 
 
 def _get_switch_mac(level, level_id, level_name, switch_name, console, thread_id):

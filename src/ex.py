@@ -4,7 +4,7 @@ from jnpr.junos import Device
 from jnpr.junos.utils.config import Config
 
 ### CONF IMPORT ###
-from config import ex_metod
+from config import ex_method
 
 ###########################
 ### LOGGING SETTINGS
@@ -12,11 +12,11 @@ console = None
 
 ###########################
 ### PARAMETERS
-ex_username = ex_metod["username"]
-ex_pwd = ex_metod["password"]
-domain_name = ex_metod["domain_name"]
-ex_conf_trunk_ap = ex_metod["conf_trunk_ap"]
-ex_conf_default = ex_metod["conf_default"]
+ex_username = ex_method["username"]
+ex_pwd = ex_method["password"]
+domain_name = ex_method["domain_name"]
+ex_conf_trunk_ap = ex_method["conf_trunk_ap"]
+ex_conf_default = ex_method["conf_default"]
 
 
 ###########################

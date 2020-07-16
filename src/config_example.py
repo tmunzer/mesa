@@ -82,15 +82,25 @@ site_outage_aps = {
 
 ########################
 # configuration_method: 
-# Indicate the script how to configure the switchport
+# Indicate the switch how the process to configure the switchport
 #
+# value "mist":     The script will use Mist to configure the switchport.
+#                   You'll have to set the "mist_method" settings below
 # value "cso":      The script will use CSO to configure the switchport. 
-#                   You'll have to set the "cso" settings bellow
+#                   You'll have to set the "cso_method" settings below
 # value "ex":       The script will use pyez to configure the switchport 
 #                   directly on the switch. The script must be able to 
 #                   resolve the switch FQDN (possible to add the domain 
 #                   name to the switch hostname) and reach it.
-configuration_method= "cso"
+configuration_method= "mist"
+
+########################
+# mist_method: 
+mist_method={
+    "conf_default":"default_profile",
+    "conf_ap":"ap_profile"
+}
+
 
 ########################
 # ex_method: 

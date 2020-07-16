@@ -25,7 +25,7 @@ disconnect_validation_wait_time = disconnect_validation["wait_time"]
 if "wait_for_cloud_update" in mist_conf:
     wait_for_cloud_update = mist_conf["wait_for_cloud_update"]
 else:
-    wait_for_cloud_update = 180
+    wait_for_cloud_update = 10
 ###########################
 # LOGGING SETTINGS
 try:
@@ -42,6 +42,8 @@ if configuration_method == "cso":
     import cso
 elif configuration_method == "ex":
     import ex
+elif configuration_method == "mist":
+    import mist
 else:
     print("Error in the configuration file. Please check the configuration_method variable! Exiting...")
     exit(255)
@@ -182,7 +184,7 @@ class Mesa(Thread):
 
 
     def _initiate_conf_change(self, action, org_id, level, level_id, level_name, ap_mac, retry):
-        if action == "AP_RESTARTED":
+        if action == "AP_RESTARTED" or action == "AP_CONNECTED":
             self._pausing_for_cloud_update()
         resp = self._get_ap_details(level, level_id, ap_mac)
         time.sleep(2)
