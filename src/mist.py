@@ -30,9 +30,9 @@ def get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id):
     url = "%s/api/v1/sites/%s/devices/%s" %(url_prefix, site_id, switch_id)
     headers = {'Content-Type': "application/json",
             "Authorization": "Token %s" % apitoken}
-    switch_conf = req.get(url, headers=headers)["result"]
-    if switch_conf:
-        return switch_conf
+    resp = req.get(url, headers=headers)
+    if resp and "result" in resp:
+        return resp["result"]
     else:
         console.error("MIST SITE: {0} | SWITCH {1} | Unable to find switch configuration...".format(site_name, switch_name), thread_id)
         return None
@@ -72,10 +72,11 @@ def _init(site_id, switch_name):
     headers = {'Content-Type': "application/json",
             "Authorization": "Token %s" % apitoken}
     
-    resp = req.get(url, headers=headers)["result"]["results"]
-    for sw in resp:
-        if switch_name in sw["hostname"]:
-            return "00000000-0000-0000-1000-{0}".format(sw["mac"])
+    resp = req.get(url, headers=headers)
+    if resp and "result" in resp and "results" in resp["results"]:        
+        for sw in resp["result"]["results"]:
+            if switch_name in sw["hostname"]:
+                return "00000000-0000-0000-1000-{0}".format(sw["mac"])
     return None
 
 

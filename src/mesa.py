@@ -1,5 +1,7 @@
 
 ### WEB SERVER IMPORTS ###
+import sys
+from mongo import MesaDB
 from flask import Flask
 from flask import json
 from flask import request
@@ -10,14 +12,9 @@ from config import mist_conf
 server_uri = mist_conf["server_uri"]
 
 
-from mongo import MesaDB
 mongo_host = "mist-mongo"
 #mongo_host = None
 mesa_db = MesaDB(server=mongo_host)
-
-
-
-import sys
 
 
 ###########################
@@ -37,14 +34,15 @@ def postJsonHandler():
     global active_threads
     global mesa_db
     content = request.get_json()
-    for event in content["events"]:
-        if "type" in event and (event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED"):
-            thread_id = active_threads
-            if active_threads == 1000:
-                active_threads = 1
-            else:
-                active_threads += 1
-            Mesa(event, thread_id, mesa_db).start()
+    if "events" in content:
+        for event in content["events"]:
+            if "type" in event and (event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED"):
+                thread_id = active_threads
+                if active_threads == 1000:
+                    active_threads = 1
+                else:
+                    active_threads += 1
+                Mesa(event, thread_id, mesa_db).start()
     return '', 200
 
 
