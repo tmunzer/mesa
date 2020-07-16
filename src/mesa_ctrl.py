@@ -146,6 +146,8 @@ class Mesa(Thread):
             configuration_route = cso
         elif configuration_method == "ex":
             configuration_route = ex
+        elif configuration_method == "mist":
+            configuration_route = mist
         else:
             console.critical("Unable to find the switchport configuration method in the configuration file...", self.thread_id)
         
