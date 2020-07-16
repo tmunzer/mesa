@@ -25,7 +25,7 @@ disconnect_validation_wait_time = disconnect_validation["wait_time"]
 if "wait_for_cloud_update" in mist_conf:
     wait_for_cloud_update = mist_conf["wait_for_cloud_update"]
 else:
-    wait_for_cloud_update = 10
+    wait_for_cloud_update = 60
 ###########################
 # LOGGING SETTINGS
 try:
@@ -152,7 +152,7 @@ class Mesa(Thread):
             console.critical("Unable to find the switchport configuration method in the configuration file...", self.thread_id)
         
         if action == "AP_CONNECTED":      
-            configuration_route.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
+            configuration_route.ap_connected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name, level_id)
             self.mesa_db.update_db_device(ap_mac, org_id, level_id, True, lldp_system_name, lldp_port_desc)
             console.send_message(self.thread_id)
 
@@ -162,7 +162,7 @@ class Mesa(Thread):
             else:
                 disconnect_validated = self._disconnect_validation(level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)
             if disconnect_validated == True:
-                configuration_route.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name)
+                configuration_route.ap_disconnected(ap_mac, lldp_system_name, lldp_port_desc, console, self.thread_id, level_name, level_id)
                 self.mesa_db.update_db_device(ap_mac, org_id, level_id, False, lldp_system_name, lldp_port_desc)
                 console.send_message(self.thread_id)
 

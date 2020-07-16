@@ -26,16 +26,12 @@ url_prefix = "https://%s" % host
 # Devices
 
 
-def get_switch_conf(site_id, switch_id, thread_id):
-    url = "%s/api/v1/sites/%s/devices/%s" %(host, site_id, switch_id)
+def get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id):
+    url = "%s/api/v1/sites/%s/devices/%s" %(url_prefix, site_id, switch_id)
     headers = {'Content-Type': "application/json",
             "Authorization": "Token %s" % apitoken}
-    switch_conf = req.get(url, headers=headers)
-    return switch_conf
-
-def retrieve_port_conf(site_id, site_name, switch_id, switch_name, thread_id):
-    switch_conf = get_switch_conf(site_id, switch_id, thread_id)
-    if "port_config" in switch_conf:
+    switch_conf = req.get(url, headers=headers)["result"]
+    if switch_conf:
         return switch_conf
     else:
         console.error("MIST SITE: {0} | SWITCH {1} | Unable to find switch configuration...".format(site_name, switch_name), thread_id)
@@ -57,11 +53,11 @@ def update_port_config(switch_conf, port_id, port_profile, evap_connectedent):
 # Configure swtich port
 
 def _set_switchport_config(site_id, site_name, switch_name, switch_id, port_id, port_profile, thread_id, ap_connected=False):
-    url = "%s/api/v1/sites/%s/devices/%s" %(host, site_id, switch_id)
+    url = "%s/api/v1/sites/%s/devices/%s" %(url_prefix, site_id, switch_id)
     headers = {'Content-Type': "application/json",
             "Authorization": "Token %s" % apitoken}
 
-    switch_conf = retrieve_port_conf(site_id, site_name, switch_id, switch_name, thread_id)
+    switch_conf = get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id)
     switch_conf["port_usage"] = update_port_usage(switch_conf)
     switch_conf["port_config"] = update_port_config(switch_conf, port_id, port_profile, ap_connected)
     console.notice("MIST SITE: {0} | SWITCH: {1} | PORT: {2} | Sending request to MIST to apply the profile {3}".format(site_name, switch_name, port_id, port_profile), thread_id)
@@ -72,19 +68,19 @@ def _set_switchport_config(site_id, site_name, switch_name, switch_id, port_id, 
 # Deploy and Commit switch configuration
 
 def _init(site_id, switch_name):
-    url = "{0}/api/v1/sites/{1}/devices/search?type=switch{2}".format(host, site_id, "")
+    url = "{0}/api/v1/sites/{1}/devices/search?type=switch{2}".format(url_prefix, site_id, "")
     headers = {'Content-Type': "application/json",
             "Authorization": "Token %s" % apitoken}
     
-    resp = req.get(url, headers=headers)
+    resp = req.get(url, headers=headers)["result"]["results"]
     for sw in resp:
         if switch_name in sw["hostname"]:
-            return sw["id"]
+            return "00000000-0000-0000-1000-{0}".format(sw["mac"])
     return None
 
 
 
-def ap_connected(mac, site_name, site_id, lldp_system_name, lldp_port_desc, o_console, thread_id=None, *args):
+def ap_connected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, site_name=None, site_id=None, *args):
     global console 
     console = o_console
     switch_id = _init(site_id, lldp_system_name)
@@ -94,7 +90,7 @@ def ap_connected(mac, site_name, site_id, lldp_system_name, lldp_port_desc, o_co
         console.error("MIST SITE {0} | unable to find the switch {1}".format(site_name, lldp_system_name), thread_id)
 
 
-def ap_disconnected(mac, site_name, site_id, lldp_system_name, lldp_port_desc, o_console, thread_id=None, *args):
+def ap_disconnected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, site_name=None, site_id=None, *args):
     global console 
     console = o_console
     switch_id = _init(site_id, lldp_system_name)
