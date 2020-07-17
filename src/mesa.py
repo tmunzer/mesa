@@ -1,17 +1,16 @@
 
 ### WEB SERVER IMPORTS ###
-import sys
-from mongo import MesaDB
 from flask import Flask
 from flask import json
 from flask import request
 
 from mesa_ctrl import Mesa
-
+from mesa_ctrl_ext import MesaExt
 from config import mist_conf
 server_uri = mist_conf["server_uri"]
 
 
+from mongo import MesaDB
 mongo_host = "mist-mongo"
 #mongo_host = None
 mesa_db = MesaDB(server=mongo_host)
@@ -45,7 +44,7 @@ def postJsonHandler():
                 Mesa(event, thread_id, mesa_db).start()
     return '', 200
 
-@app.route("cleasrpass", methods=["POST"])
+@app.route("/external", methods=["POST"])
 def postClearpassHandler():
     global active_threads
     global mesa_db
@@ -60,7 +59,7 @@ def postClearpassHandler():
             active_threads = 1
         else:
             active_threads += 1
-        Mesa(event, thread_id, mesa_db).start()
+        MesaExt(event, thread_id, mesa_db).start()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=server_port)

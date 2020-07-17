@@ -51,7 +51,7 @@ else:
 ###########################
 # CLASS MESA
 
-class Mesa(Thread):
+class MesaExt(Thread):
 
     def __init__(self, event, thread_id, mesa_db):
         Thread.__init__(self)
