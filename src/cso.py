@@ -212,7 +212,7 @@ def _init(hostname, thread_id):
         return [site_name, switch_uuid, None]
 
 
-def ap_connected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, *args):
+def ap_connected(lldp_system_name, lldp_port_desc, o_console, thread_id=None, *args):
     global console 
     console = o_console
     site_name, switch_uuid, lan_segments = _init(lldp_system_name, thread_id)
@@ -227,7 +227,7 @@ def ap_connected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=Non
                 _deploy_switchport_config(site_name, switch_uuid, lldp_port_desc, lldp_system_name, thread_id)
 
 
-def ap_disconnected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, *args):
+def ap_disconnected(lldp_system_name, lldp_port_desc, o_console, thread_id=None, *args):
     global console 
     console = o_console
     site_name, switch_uuid, lan_segments = _init(lldp_system_name, thread_id)

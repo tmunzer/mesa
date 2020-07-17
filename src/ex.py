@@ -86,19 +86,19 @@ def _change_ex_conf(level_name, switch, conf, thread_id):
             _ex_unlock(level_name, cu, switch, thread_id)
             dev.close()
 
-def ap_connected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, level_name=None):
+def ap_connected(lldp_system_name, lldp_port_desc, o_console, thread_id=None, level_name=None):
     global console 
     console = o_console
     lldp_system_name = "%s.%s" %(lldp_system_name, domain_name)
-    console.info("SITE: %s | SWITCH: %s | PORT: %s | AP %s connected" %(level_name, lldp_system_name, lldp_port_desc, mac), thread_id)
+    console.info("SITE: %s | SWITCH: %s | PORT: %s | AP connected" %(level_name, lldp_system_name, lldp_port_desc), thread_id)
     conf = _replace_port(ex_conf_trunk_ap, lldp_port_desc)
     _change_ex_conf(level_name, lldp_system_name, conf, thread_id)
 
-def ap_disconnected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, level_name=None):
+def ap_disconnected(lldp_system_name, lldp_port_desc, o_console, thread_id=None, level_name=None):
     global console 
     console = o_console
     lldp_system_name = "%s.%s" %(lldp_system_name, domain_name)
-    console.info("SITE: %s | SWITCH: %s | PORT: %s | AP %s disconnected" %(level_name, lldp_system_name, lldp_port_desc, mac), thread_id)
+    console.info("SITE: %s | SWITCH: %s | PORT: %s | AP disconnected" %(level_name, lldp_system_name, lldp_port_desc), thread_id)
     conf = _replace_port(ex_conf_default, lldp_port_desc)
     _change_ex_conf(level_name, lldp_system_name, conf, thread_id)
     

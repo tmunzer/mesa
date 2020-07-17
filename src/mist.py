@@ -81,7 +81,7 @@ def _init(site_id, switch_name):
 
 
 
-def ap_connected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, site_name=None, site_id=None, *args):
+def ap_connected(lldp_system_name, lldp_port_desc, o_console, thread_id=None, site_name=None, site_id=None, *args):
     global console 
     console = o_console
     switch_id = _init(site_id, lldp_system_name)
@@ -91,7 +91,7 @@ def ap_connected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=Non
         console.error("MIST SITE {0} | unable to find the switch {1}".format(site_name, lldp_system_name), thread_id)
 
 
-def ap_disconnected(mac, lldp_system_name, lldp_port_desc, o_console, thread_id=None, site_name=None, site_id=None, *args):
+def ap_disconnected(lldp_system_name, lldp_port_desc, o_console, thread_id=None, site_name=None, site_id=None, *args):
     global console 
     console = o_console
     switch_id = _init(site_id, lldp_system_name)

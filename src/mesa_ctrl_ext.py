@@ -61,11 +61,21 @@ class Mesa(Thread):
 
     def run(self):
         event = self.event
-        mac = event["ap"]
-        if "site_id" in event:
+        switch_mac = event["mac"]
+        switch_port = event["port"]
+        ap_mac = event["ap_mac"] if "ap_mac" in event else None
+        url = "https://{0}/api/v1/orgs/{1}/inventory?mac={2}".format(mist_cloud, event["org_id"], switch_mac)
+        headers = {'Content-Type': "application/json",
+                "Authorization": "Token %s" % apitoken}
+        resp = req.get(url, headers=headers)
+        if resp and "result" in resp:
+            switch = resp["result"][0]
+
+        switch_name = switch["name"]
+        if "site_id" in switch:
             level = "sites"
-            level_id = event["site_id"]
-            org_id = event["org_id"]
+            level_id = switch["site_id"]
+            org_id = switch["org_id"]
             if "site_name" in event:
                 level_name = event["site_name"]
             else:
@@ -77,10 +87,10 @@ class Mesa(Thread):
             level_name = "ROOT_ORG"
         action = event["type"]
         if level_id in site_id_ignored:
-            console.info("MIST SITE: %s | RECEIVED message %s for AP %s, but site %s should be ignored. Discarding the message..." % (level_name, action, mac, level_id), self.thread_id)                
+            console.info("EXTERNAL | MIST SITE: {0} | RECEIVED message {1} on switch {2} port {3} but this site should be ignored. Discarding the message...".format(level_name, action, switch_name, switch_port), self.thread_id)                
         else:
-            console.notice("MIST SITE: %s | RECEIVED message %s for AP %s" %(level_name, action, mac), self.thread_id)
-            self._initiate_conf_change(action, org_id, level,level_id, level_name, mac, False)
+            console.notice("EXTERNAL | MIST SITE: {0} | RECEIVED message {1} on switch {2} port {3}.".format(level_name, action, switch_name, switch_port), self.thread_id)            
+            self._route_request(action, org_id, level, level_id, level_name, ap_mac, switch_name, switch_port, True)   
 
     def _disconnect_validation(self, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc):
         if disconnect_validation_method == "outage":
@@ -94,52 +104,6 @@ class Mesa(Thread):
         else:
             return True
 
-
-    def _get_ap_details(self, level, level_id, mac):
-        url = "https://%s/api/v1/%s/%s/devices/search?mac=%s" % (
-            mist_cloud, level, level_id, mac)
-        headers = {'Content-Type': "application/json",
-                "Authorization": "Token %s" % apitoken}
-        resp = req.get(url, headers=headers)
-        if resp and "result" in resp:
-            return resp["result"]
-        else:
-            return None
-
-
-    def _get_new_site_name(self, device, level_name):
-        url = "https://%s/api/v1/sites/%s" % (mist_cloud, device["site_id"])
-        headers = {'Content-Type': "application/json",
-                "Authorization": "Token %s" % apitoken}
-        resp = req.get(url, headers=headers)
-        if resp and "result" in resp:
-            return (resp["result"]["name"], resp["result"]["id"])
-        else:
-            console.error("MIST AP %s | Not on site %s anymore, and unable to find where it is. Aborting..." % (device["mac"], level_name), self.thread_id)
-            console.send_message(self.thread_id)
-
-
-    def _deep_dive_lookup_for_ap(self, org_id, action, level, level_id, level_name, ap_mac, retry):
-        url = "https://%s/api/v1/orgs/%s/inventory" % (mist_cloud, org_id)
-        headers = {'Content-Type': "application/json",
-                "Authorization": "Token %s" % apitoken}
-        resp = req.get(url, headers=headers)
-        if resp and "result" in resp:
-            for device in resp["result"]:
-                if device["mac"] == ap_mac:
-                    site_name, site_id = self._get_new_site_name(
-                        device, level_name)
-                    console.notice("MIST AP %s | Has been moved from site %s to site %s. Processing with the new site..." % (ap_mac, level_name, site_name), self.thread_id)
-                    self._initiate_conf_change(
-                        action, org_id, "sites", site_id, site_name, ap_mac, True)
-                    break
-        else:
-            console.error("MIST AP %s | May have been removed from the Org before I get the message. Unable to retrieve the required informations. Aborting...", self.thread_id)
-            console.send_message(self.thread_id)
-
-    def _pausing_for_cloud_update(self):
-        console.info("Pausing %s seconds to let the Cloud update the information..." %(wait_for_cloud_update), self.thread_id)
-        time.sleep(wait_for_cloud_update)
 
     def _route_request(self, action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc, force=False):
         if configuration_method == "cso":
@@ -184,29 +148,5 @@ class Mesa(Thread):
                     console.info("AP %s restarted, but switchport didn't change... Discarding the message..." % (ap_mac), self.thread_id)
 
 
-
-    def _initiate_conf_change(self, action, org_id, level, level_id, level_name, ap_mac, retry):
-        if action == "AP_RESTARTED" or action == "AP_CONNECTED":
-            self._pausing_for_cloud_update()
-        resp = self._get_ap_details(level, level_id, ap_mac)
-        time.sleep(2)
-        if resp and "results" in resp and len(resp["results"]) == 1:
-            console.debug("AP %s found in %s %s" % (ap_mac, level, level_id), self.thread_id)
-            ap_info = resp["results"][0]
-            if "lldp_system_name" in ap_info and "lldp_port_desc" in ap_info:
-                lldp_system_name = ap_info["lldp_system_name"]
-                lldp_port_desc = ap_info["lldp_port_desc"]
-                self._route_request(action, org_id, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc)            
-            else:
-                console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable retrieve the LLDP information" % (
-                    level_name, action, ap_mac), self.thread_id)
-                console.send_message(self.thread_id)
-        elif not retry:
-            self._deep_dive_lookup_for_ap(
-                org_id, action, level, level_id, level_name, ap_mac, retry)
-        else:
-            console.error("MIST SITE: %s | Received %s for AP %s, but I'm unable to find it. Aborting after 2 tries..." % (
-                level_name, action, ap_mac), self.thread_id)
-            console.send_message(self.thread_id)
 
 

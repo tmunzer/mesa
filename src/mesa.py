@@ -45,6 +45,22 @@ def postJsonHandler():
                 Mesa(event, thread_id, mesa_db).start()
     return '', 200
 
+@app.route("cleasrpass", methods=["POST"])
+def postClearpassHandler():
+    global active_threads
+    global mesa_db
+    content = request.get_json()
+    event={}
+    event["mac"] = content["switch_mac"] if "switch_mac" in content else None
+    event["port"] = content["switch_port"] if "switch_port" in content else None
+    event["source"] = "clearpass"
+    if "type" in event and (event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED"):
+        thread_id = active_threads
+        if active_threads == 1000:
+            active_threads = 1
+        else:
+            active_threads += 1
+        Mesa(event, thread_id, mesa_db).start()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=server_port)
