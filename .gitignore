@@ -125,3 +125,4 @@ dmypy.json
 .pyre/
 config.py
 data.py
+.DS_Store

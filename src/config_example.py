@@ -120,6 +120,7 @@ configuration_method= "mist"
 #                   to the switch port. This profile MUST be present in the 
 #                   switch template assigned to the switch or in the switch
 #                   configuration!
+#                   if None, will just remove the switch override.
 # profile_ap:       Mist port profile to apply when there is an AP connected
 #                   to the switch port. This profile MUST be present in the 
 #                   switch template assigned to the switch or in the switch

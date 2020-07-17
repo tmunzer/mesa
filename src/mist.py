@@ -38,7 +38,10 @@ def get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id):
 
 def update_port_config(switch_conf, port_id, port_profile):    
     port_config= switch_conf["port_config"] if "port_config" in switch_conf else {}
-    port_config[port_id] = {"usage": port_profile}
+    if port_profile:
+        port_config[port_id] = {"usage": port_profile}
+    else:   
+        del port_profile[port_id]
     return port_config
 
 # Configure swtich port
