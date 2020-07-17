@@ -73,7 +73,7 @@ def _init(site_id, switch_name):
             "Authorization": "Token %s" % apitoken}
     
     resp = req.get(url, headers=headers)
-    if resp and "result" in resp and "results" in resp["results"]:        
+    if resp and "result" in resp and "results" in resp["result"]:        
         for sw in resp["result"]["results"]:
             if switch_name in sw["hostname"]:
                 return "00000000-0000-0000-1000-{0}".format(sw["mac"])
