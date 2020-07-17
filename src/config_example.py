@@ -17,7 +17,26 @@ mist_conf={
     "server_uri": "/mist-webhooks",
     "site_id_ignored": []
 }
+
 log_level = 6
+########################
+# external_conf:
+# allow external systems to send trigger to MESA script. The message recieved by 
+# the script must be a JSON payload with the switch mac address, the switch
+# port to reconfigure and the event:
+# {"switch_mac": "2c21311cbeef", "switch_port": "ge-0/0/0", "type":"AP_DISCONNECTED"}
+# or 
+# {"switch_mac": "2c21311cbeef", "switch_port": "ge-0/0/0", "type":"AP_CONNECTED"}
+#
+# enabled: wether or not the script access exteral sources
+# server_uri: uri wehre you want to received the messages on this server
+# org_id: you Mist org_id. Used to retrieve the switch location and information
+external_conf = {
+    "enabled": False,
+    "server_uri": "/external",
+    "org_id": "xxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxxxx"
+}
+
 ########################
 # slack_conf
 # if the script has to send logs to slack webhook. To get the Slack 
@@ -53,7 +72,6 @@ disconnect_validation = {
     "method": "lldp",
     "wait_time": 30
 } 
-
 
 ########################
 # site_outage_aps
@@ -96,11 +114,28 @@ configuration_method= "mist"
 
 ########################
 # mist_method: 
+# Parameters used to configure the switchport through Mist Wired Assurance
+#
+# profile_default:  Mist port profile to apply when there is no AP connected  
+#                   to the switch port
+# profile_ap:       Mist port profile to apply when there is an AP connected
+#                   to the switch port
+# conf_ap:          Mist port profile to deploy to the switch if not alreay
+#                   present
 mist_method={
-    "conf_default":"default_profile",
-    "conf_ap":"ap_profile"
+    "profile_default":"default_profile",
+    "conf_ap":"ap_profile",
+    "conf_ap": {
+                "name": "profile_name",
+                "mode": "trunk",
+                "disabled": False,
+                "port_network": "vlan_name",
+                "stp_edge": False,
+                "all_networks": True,
+                "networks": [],
+                "port_auth": None
+            }
 }
-
 
 ########################
 # ex_method: 
