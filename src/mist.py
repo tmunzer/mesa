@@ -42,24 +42,21 @@ def update_port_usage(switch_conf):
     port_usage[profile_ap["name"]] =  profile_ap 
     return port_usage
 
-def update_port_config(switch_conf, port_id, port_profile, evap_connectedent):    
+def update_port_config(switch_conf, port_id, port_profile):    
     port_config= switch_conf["port_config"] if "port_config" in switch_conf else {}
-    if ap_connected:
-        port_config[port_id] = {"usage": port_profile}
-    else:
-        del port_config[port_id]
+    port_config[port_id] = {"usage": port_profile}
     return port_config
 
 # Configure swtich port
 
-def _set_switchport_config(site_id, site_name, switch_name, switch_id, port_id, port_profile, thread_id, ap_connected=False):
+def _set_switchport_config(site_id, site_name, switch_name, switch_id, port_id, port_profile, thread_id):
     url = "%s/api/v1/sites/%s/devices/%s" %(url_prefix, site_id, switch_id)
     headers = {'Content-Type': "application/json",
             "Authorization": "Token %s" % apitoken}
 
     switch_conf = get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id)
     switch_conf["port_usage"] = update_port_usage(switch_conf)
-    switch_conf["port_config"] = update_port_config(switch_conf, port_id, port_profile, ap_connected)
+    switch_conf["port_config"] = update_port_config(switch_conf, port_id, port_profile)
     console.notice("MIST SITE: {0} | SWITCH: {1} | PORT: {2} | Sending request to MIST to apply the profile {3}".format(site_name, switch_name, port_id, port_profile), thread_id)
 
     resp = req.put(url, headers=headers, body=switch_conf)
@@ -86,7 +83,7 @@ def ap_connected(lldp_system_name, lldp_port_desc, o_console, thread_id=None, si
     console = o_console
     switch_id = _init(site_id, lldp_system_name)
     if switch_id:
-        _set_switchport_config(site_id, site_name, lldp_system_name, switch_id, lldp_port_desc, port_profile_ap, thread_id, True)
+        _set_switchport_config(site_id, site_name, lldp_system_name, switch_id, lldp_port_desc, port_profile_ap, thread_id)
     else:
         console.error("MIST SITE {0} | unable to find the switch {1}".format(site_name, lldp_system_name), thread_id)
 
