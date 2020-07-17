@@ -59,7 +59,6 @@ def postClearpassHandler():
         event={}
         event["mac"] = content["switch_mac"] if "switch_mac" in content else None
         event["port"] = content["switch_port"] if "switch_port" in content else None
-        event["source"] = "clearpass"
         event["org_id"] = external_org_id
         if "type" in content :
             event["type"] = content["type"]
