@@ -41,7 +41,7 @@ def update_port_config(switch_conf, port_id, port_profile):
     if port_profile:
         port_config[port_id] = {"usage": port_profile}
     else:   
-        del port_profile[port_id]
+        del port_config[port_id]
     return port_config
 
 # Configure swtich port
