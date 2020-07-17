@@ -117,24 +117,16 @@ configuration_method= "mist"
 # Parameters used to configure the switchport through Mist Wired Assurance
 #
 # profile_default:  Mist port profile to apply when there is no AP connected  
-#                   to the switch port
+#                   to the switch port. This profile MUST be present in the 
+#                   switch template assigned to the switch or in the switch
+#                   configuration!
 # profile_ap:       Mist port profile to apply when there is an AP connected
-#                   to the switch port
-# conf_ap:          Mist port profile to deploy to the switch if not alreay
-#                   present
+#                   to the switch port. This profile MUST be present in the 
+#                   switch template assigned to the switch or in the switch
+#                   configuration!
 mist_method={
     "profile_default":"default_profile",
-    "conf_ap":"ap_profile",
-    "conf_ap": {
-                "name": "profile_name",
-                "mode": "trunk",
-                "disabled": False,
-                "port_network": "vlan_name",
-                "stp_edge": False,
-                "all_networks": True,
-                "networks": [],
-                "port_auth": None
-            }
+    "conf_ap":"ap_profile"
 }
 
 ########################

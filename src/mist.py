@@ -14,7 +14,6 @@ apitoken = mist_conf["apitoken"]
 host = mist_conf["mist_cloud"]
 port_profile_default = mist_method["profile_default"]
 port_profile_ap = mist_method["profile_ap"]
-profile_ap = mist_method["conf_ap"]
 
 ###########################
 # VARIABLES
@@ -36,11 +35,6 @@ def get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id):
     else:
         console.error("MIST SITE: {0} | SWITCH {1} | Unable to find switch configuration...".format(site_name, switch_name), thread_id)
         return None
- 
-def update_port_usage(switch_conf):
-    port_usage = switch_conf["port_usage"] if "port_usage" in switch_conf else {}    
-    port_usage[profile_ap["name"]] =  profile_ap 
-    return port_usage
 
 def update_port_config(switch_conf, port_id, port_profile):    
     port_config= switch_conf["port_config"] if "port_config" in switch_conf else {}
@@ -54,8 +48,7 @@ def _set_switchport_config(site_id, site_name, switch_name, switch_id, port_id, 
     headers = {'Content-Type': "application/json",
             "Authorization": "Token %s" % apitoken}
 
-    switch_conf = get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id)
-    switch_conf["port_usage"] = update_port_usage(switch_conf)
+    switch_conf = get_switch_conf(site_id, site_name, switch_id, switch_name, thread_id)    
     switch_conf["port_config"] = update_port_config(switch_conf, port_id, port_profile)
     console.notice("MIST SITE: {0} | SWITCH: {1} | PORT: {2} | Sending request to MIST to apply the profile {3}".format(site_name, switch_name, port_id, port_profile), thread_id)
 
