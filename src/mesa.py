@@ -41,24 +41,24 @@ app = Flask(__name__)
 @app.route(server_uri, methods=["POST"])
 def postJsonHandler():
     signature = request.headers['X-Mist-Signature'] if "X-Mist-Signature" in request.headers else None
-    content = request.get_json()    
+    content = request.get_json()
     key = str.encode(mist_secret)
     message = request.data
     digester = hmac.new(key, message, hashlib.sha1).hexdigest()
-    print("sig {0}".format(signature))
-    print("dig {0}".format(digester))
     global active_threads
     global mesa_db
-    if "events" in content:
-        for event in content["events"]:
-            if "type" in event and (event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED"):
-                thread_id = active_threads
-                if active_threads == 1000:
-                    active_threads = 1
-                else:
-                    active_threads += 1
-                Mesa(event, thread_id, mesa_db).start()
-    return '', 200
+    if signature == digester or mist_secret == None:
+        if "events" in content:
+            for event in content["events"]:
+                if "type" in event and (event["type"] == "AP_CONNECTED" or event["type"] == "AP_DISCONNECTED" or event["type"] == "AP_RESTARTED"):
+                    thread_id = active_threads
+                    if active_threads == 1000:
+                        active_threads = 1
+                    else:
+                        active_threads += 1
+                    Mesa(event, thread_id, mesa_db).start()
+        return '', 200
+    else: return '',401
 
 @app.route(external_server_uri, methods=["POST"])
 def postClearpassHandler():
