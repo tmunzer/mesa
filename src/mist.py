@@ -40,7 +40,7 @@ def update_port_config(switch_conf, port_id, port_profile):
     port_config= switch_conf["port_config"] if "port_config" in switch_conf else {}
     if port_profile:
         port_config[port_id] = {"usage": port_profile}
-    else:   
+    elif port_id in port_config:   
         del port_config[port_id]
     return port_config
 
