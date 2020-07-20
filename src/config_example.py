@@ -9,12 +9,14 @@
 #                       api.eu.mist.com if you are using EU Cloud
 # server_uri:           uri where you want to receive wehbooks messages
 #                       on this server. 
+# mist_secret:          secret configured in the Mist Webhook
 # site_id_ignored:      Array of site ids you want to ignore (MESA will 
 #                       not change the port configuration on these sites)
 mist_conf={
     "apitoken": "xxxxxxxxxxxxxxx",
     "mist_cloud": "api.mist.com",
     "server_uri": "/mist-webhooks",
+    "mist_secret": None,
     "site_id_ignored": []
 }
 
@@ -30,10 +32,14 @@ log_level = 6
 #
 # enabled: wether or not the script access exteral sources
 # server_uri: uri wehre you want to received the messages on this server
+# X-ClientApiKey: some kind of token (string). If different from None, the server
+#                 will look for X-ClientApiKey in the HTTP header, and compare the
+#                 value to this value. If it doesn't match, the request is dropped
 # org_id: you Mist org_id. Used to retrieve the switch location and information
 external_conf = {
     "enabled": False,
     "server_uri": "/external",
+    "X-ClientApiKey": None,
     "org_id": "xxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxxxx"
 }
 
