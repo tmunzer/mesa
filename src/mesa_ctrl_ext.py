@@ -64,33 +64,40 @@ class MesaExt(Thread):
         switch_mac = event["mac"]
         switch_port = event["port"]
         ap_mac = event["ap_mac"] if "ap_mac" in event else None
+        console.info("Switch: {0} | Port: {1} | AP: {2}".format(switch_mac, switch_port, ap_mac))
         url = "https://{0}/api/v1/orgs/{1}/inventory?mac={2}".format(mist_cloud, event["org_id"], switch_mac)
         headers = {'Content-Type': "application/json",
                 "Authorization": "Token %s" % apitoken}
         resp = req.get(url, headers=headers)
         if resp and "result" in resp:
-            switch = resp["result"][0]
-
-        switch_name = switch["name"]
-        if "site_id" in switch:
-            level = "sites"
-            level_id = switch["site_id"]
-            org_id = switch["org_id"]
-            if "site_name" in event:
-                level_name = event["site_name"]
-            else:
-                level_name = "no site name"
-        else:
-            level = "orgs"
-            level_id = event["org_id"]
-            org_id = event["org_id"]
-            level_name = "ROOT_ORG"
-        action = event["type"]
-        if level_id in site_id_ignored:
-            console.info("EXTERNAL | MIST SITE: {0} | RECEIVED message {1} on switch {2} port {3} but this site should be ignored. Discarding the message...".format(level_name, action, switch_name, switch_port), self.thread_id)                
-        else:
-            console.notice("EXTERNAL | MIST SITE: {0} | RECEIVED message {1} on switch {2} port {3}.".format(level_name, action, switch_name, switch_port), self.thread_id)            
-            self._route_request(action, org_id, level, level_id, level_name, ap_mac, switch_name, switch_port, True)   
+            try:
+                switch = resp["result"][0]
+            except: 
+                console.error("Unable to get the switch {0} in the organization inventory")
+                switch = None
+        else: 
+            console.debug(resp)
+            if switch:
+                switch_name = switch["name"]
+                if "site_id" in switch:
+                    level = "sites"
+                    level_id = switch["site_id"]
+                    org_id = switch["org_id"]
+                    if "site_name" in event:
+                        level_name = event["site_name"]
+                    else:
+                        level_name = "no site name"
+                else:
+                    level = "orgs"
+                    level_id = event["org_id"]
+                    org_id = event["org_id"]
+                    level_name = "ROOT_ORG"
+                action = event["type"]
+                if level_id in site_id_ignored:
+                    console.info("EXTERNAL | MIST SITE: {0} | RECEIVED message {1} on switch {2} port {3} but this site should be ignored. Discarding the message...".format(level_name, action, switch_name, switch_port), self.thread_id)                
+                else:
+                    console.notice("EXTERNAL | MIST SITE: {0} | RECEIVED message {1} on switch {2} port {3}.".format(level_name, action, switch_name, switch_port), self.thread_id)            
+                    self._route_request(action, org_id, level, level_id, level_name, ap_mac, switch_name, switch_port, True)   
 
     def _disconnect_validation(self, level, level_id, level_name, ap_mac, lldp_system_name, lldp_port_desc):
         if disconnect_validation_method == "outage":
