@@ -73,7 +73,7 @@ class MesaExt(Thread):
             try:
                 switch = resp["result"][0]
             except: 
-                console.error("Unable to get the switch {0} in the organization inventory")
+                console.error("Unable to get the switch {0} in the organization inventory".format(switch_mac))
                 switch = None
         else: 
             console.debug(resp)
