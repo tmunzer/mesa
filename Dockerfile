@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.12-rc-slim-buster
 
 LABEL maintainer="tmunzer@juniper.net"
 LABEL one.stag.mesa.version="1.4.2"
